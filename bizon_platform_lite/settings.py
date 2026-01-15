@@ -1,0 +1,52 @@
+"""Application settings for bizon-platform-lite."""
+
+from typing import Literal, Optional
+
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+
+    # Database
+    database_url: str = "postgresql+asyncpg://bizon:bizon@localhost:5432/bizon_platform_lite"
+
+    # API
+    host: str = "0.0.0.0"
+    port: int = 8000
+    debug: bool = False
+
+    # Worker
+    worker_poll_interval: int = 2  # seconds
+
+    # Storage backend (local only for lite version)
+    storage_backend: Literal["local"] = "local"
+    storage_local_path: str = "/tmp/bizon-outputs"
+
+    # Custom sources directory (local Python files)
+    custom_sources_dir: str = "./custom-sources"
+
+    # Encryption (for config secrets)
+    # Generate a key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    encryption_key: Optional[str] = None
+
+    # Execution backend
+    execution_backend: Literal["subprocess", "docker"] = "subprocess"
+
+    # Docker backend settings (when execution_backend=docker)
+    docker_host: Optional[str] = None
+    docker_runner_image: str = "bizon-platform-lite:latest"
+    docker_memory_limit: str = "2g"
+    docker_cpu_limit: float = 2.0
+    docker_timeout_seconds: int = 300
+
+    # CORS
+    cors_allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
+
+
+settings = Settings()

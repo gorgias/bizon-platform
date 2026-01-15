@@ -1,0 +1,1 @@
+"""Bizon Platform Lite tests."""

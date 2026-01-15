@@ -1,0 +1,6 @@
+export * from './DashboardPage'
+export * from './PipelinesPage'
+export * from './PipelineDetailPage'
+export * from './PipelineCreatePage'
+export * from './ConnectorsPage'
+export * from './SavedPage'

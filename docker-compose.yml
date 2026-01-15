@@ -1,0 +1,139 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bizon
+      POSTGRES_PASSWORD: bizon
+      POSTGRES_DB: bizon_platform_lite
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bizon -d bizon_platform_lite"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # Production services
+  # =============================================================================
+  api:
+    profiles: [prod]
+    build:
+      context: .
+      target: backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      STORAGE_LOCAL_PATH: /tmp/bizon-outputs
+      CUSTOM_SOURCES_DIR: /custom-sources
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+    volumes:
+      - ./custom-sources:/custom-sources
+      - bizon_outputs:/tmp/bizon-outputs
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "uv run alembic upgrade head && uv run python -m bizon_platform_lite"
+
+  worker:
+    profiles: [prod]
+    build:
+      context: .
+      target: backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      STORAGE_LOCAL_PATH: /tmp/bizon-outputs
+      CUSTOM_SOURCES_DIR: /custom-sources
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+    volumes:
+      - ./custom-sources:/custom-sources
+      - bizon_outputs:/tmp/bizon-outputs
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    command: ["python", "-m", "bizon_platform_lite.worker"]
+
+  ui:
+    profiles: [prod]
+    build:
+      context: .
+      target: ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+  # =============================================================================
+  # Development services (hot reload)
+  # =============================================================================
+  api-dev:
+    profiles: [dev]
+    build:
+      context: .
+      target: backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./bizon_platform_lite:/app/bizon_platform_lite
+      - ./custom-sources:/custom-sources
+      - bizon_outputs:/tmp/bizon-outputs
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      STORAGE_LOCAL_PATH: /tmp/bizon-outputs
+      CUSTOM_SOURCES_DIR: /custom-sources
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      DEBUG: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "uv run alembic upgrade head && uv run uvicorn bizon_platform_lite.api.app:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker-dev:
+    profiles: [dev]
+    build:
+      context: .
+      target: backend
+    volumes:
+      - ./bizon_platform_lite:/app/bizon_platform_lite
+      - ./custom-sources:/custom-sources
+      - bizon_outputs:/tmp/bizon-outputs
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      STORAGE_LOCAL_PATH: /tmp/bizon-outputs
+      CUSTOM_SOURCES_DIR: /custom-sources
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      DEBUG: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      api-dev:
+        condition: service_started
+    command: >
+      sh -c "pip install watchfiles && watchfiles 'python -m bizon_platform_lite.worker' /app/bizon_platform_lite"
+
+  ui-dev:
+    profiles: [dev]
+    image: node:22
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./ui:/app
+      - ui_node_modules:/app/node_modules
+    environment:
+      API_URL: http://api-dev:8000
+    depends_on:
+      - api-dev
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  postgres_data:
+  bizon_outputs:
+  ui_node_modules:

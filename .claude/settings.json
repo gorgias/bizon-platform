@@ -1,0 +1,8 @@
+{
+  "skills": {
+    "create-source": {
+      "description": "Create a new custom bizon source connector",
+      "path": ".claude/skills/create-source.md"
+    }
+  }
+}
