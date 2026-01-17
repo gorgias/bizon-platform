@@ -20,11 +20,21 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
+    from bizon_platform_lite.api.auth import optional_auth
+
+    # Build dependencies list
+    dependencies = []
+    if settings.admin_password:
+        from fastapi import Depends
+
+        dependencies.append(Depends(optional_auth))
+
     app = FastAPI(
-        title="Bizon Platform Lite",
-        description="Lightweight pipeline orchestration platform for bizon data pipelines",
+        title=settings.instance_name,
+        description=settings.instance_description,
         version="0.1.0",
         lifespan=lifespan,
+        dependencies=dependencies,
     )
 
     # Configure CORS

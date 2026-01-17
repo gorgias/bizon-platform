@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     # CORS
     cors_allowed_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # Instance branding (for white-label deployments)
+    instance_name: str = "Bizon"
+    instance_description: str = "Data pipeline orchestration platform"
+
+    # Optional authentication (basic auth)
+    # If set, all API endpoints (except /api/health) require basic auth
+    admin_password: Optional[str] = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
