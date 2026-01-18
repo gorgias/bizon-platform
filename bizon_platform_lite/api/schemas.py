@@ -66,6 +66,7 @@ class PipelineRunResponse(BaseModel):
     finished_at: Optional[datetime]
     error: Optional[str]
     logs: Optional[str]
+    log_file_path: Optional[str]
     output_file: Optional[str]
     output_file_size: Optional[int]
     created_at: datetime

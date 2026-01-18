@@ -11,6 +11,7 @@ from sqlalchemy import create_engine, select, text, update
 from bizon_platform_lite.db.models import Pipeline, PipelineRun
 from bizon_platform_lite.db.session import async_session
 from bizon_platform_lite.settings import settings
+from bizon_platform_lite.storage.logs import append_logs_sync
 from bizon_platform_lite.worker.backends import get_backend
 
 
@@ -119,10 +120,12 @@ async def claim_next_job() -> tuple[PipelineRun, dict] | None:
         return run, pipeline.config
 
 
-async def execute_pipeline(run_id, config: dict) -> None:
+async def execute_pipeline(run_id, pipeline_id, config: dict) -> None:
     """Execute a bizon pipeline using the configured backend."""
     engine = get_sync_engine()
     run_id_str = str(run_id)
+    pipeline_id_str = str(pipeline_id)
+    log_file_path = None
 
     # Inject engine config
     config = inject_engine_config(config)
@@ -147,16 +150,12 @@ async def execute_pipeline(run_id, config: dict) -> None:
             return False
 
     def flush_logs(logs: str) -> None:
-        """Flush logs to DB."""
+        """Flush logs to file."""
+        nonlocal log_file_path
         try:
-            with engine.connect() as conn:
-                conn.execute(
-                    text("UPDATE pipeline_runs SET logs = :logs WHERE id = :id AND status = 'running'"),
-                    {"logs": logs, "id": run_id_str},
-                )
-                conn.commit()
+            log_file_path = append_logs_sync(pipeline_id_str, run_id_str, logs)
         except Exception as e:
-            print(f"[WARN] Failed to flush logs: {e}")
+            print(f"[WARN] Failed to flush logs to file: {e}")
 
     try:
         # Execute via backend
@@ -170,10 +169,10 @@ async def execute_pipeline(run_id, config: dict) -> None:
 
         # Update database based on result
         if result.cancelled:
-            # Already marked as cancelled in DB, just update logs
+            # Already marked as cancelled in DB, just update log file path
             async with async_session() as session:
                 await session.execute(
-                    update(PipelineRun).where(PipelineRun.id == run_id).values(logs=result.logs or None)
+                    update(PipelineRun).where(PipelineRun.id == run_id).values(log_file_path=log_file_path)
                 )
                 await session.commit()
             print(f"[CANCELLED] Run {run_id} was cancelled")
@@ -187,7 +186,7 @@ async def execute_pipeline(run_id, config: dict) -> None:
                     .values(
                         status="success",
                         finished_at=datetime.utcnow(),
-                        logs=result.logs or None,
+                        log_file_path=log_file_path,
                         output_file=result.output_file,
                         output_file_size=result.output_file_size,
                     )
@@ -208,7 +207,7 @@ async def execute_pipeline(run_id, config: dict) -> None:
                         status="failed",
                         finished_at=datetime.utcnow(),
                         error=result.error,
-                        logs=result.logs or None,
+                        log_file_path=log_file_path,
                     )
                 )
                 await session.commit()
@@ -246,7 +245,7 @@ async def worker_loop() -> None:
             if job:
                 run, config = job
                 print(f"[START] Executing run {run.id}")
-                await execute_pipeline(run.id, config)
+                await execute_pipeline(run.id, run.pipeline_id, config)
             else:
                 await asyncio.sleep(settings.worker_poll_interval)
         except Exception as e:

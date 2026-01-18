@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     storage_backend: Literal["local"] = "local"
     storage_local_path: str = "/tmp/bizon-outputs"
 
+    # Log retention (days to keep log files, 0 = keep forever)
+    log_retention_days: int = 30
+
     # Custom sources directory (local Python files)
     custom_sources_dir: str = "./custom_sources"
 

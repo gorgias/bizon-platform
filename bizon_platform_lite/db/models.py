@@ -83,6 +83,7 @@ class PipelineRun(Base):
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     logs: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    log_file_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     output_file: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     output_file_size: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

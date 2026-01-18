@@ -21,6 +21,7 @@ from bizon_platform_lite.api.validators import validate_config_security
 from bizon_platform_lite.db.models import Pipeline, PipelineRun
 from bizon_platform_lite.db.session import get_session
 from bizon_platform_lite.settings import settings
+from bizon_platform_lite.storage.logs import read_full_logs
 
 router = APIRouter(prefix="/pipelines", tags=["pipelines"])
 
@@ -392,11 +393,22 @@ async def get_run(run_id: uuid.UUID) -> PipelineRun:
 
 @router.get("/runs/{run_id}/logs", response_model=RunLogsResponse)
 async def get_run_logs(run_id: uuid.UUID) -> RunLogsResponse:
-    """Get logs for a run."""
+    """Get logs for a run.
+
+    Reads logs from file if available (new runs), falls back to DB column (legacy runs).
+    """
     async with get_session() as session:
         run = await session.get(PipelineRun, run_id)
         if not run:
             raise HTTPException(status_code=404, detail="Run not found")
+
+        # Try file-based logs first (new runs)
+        if run.log_file_path:
+            logs = await read_full_logs(run.pipeline_id, run_id)
+            if logs is not None:
+                return RunLogsResponse(logs=logs)
+
+        # Fall back to DB logs (legacy runs or file not found)
         return RunLogsResponse(logs=run.logs)
 
 
