@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Play, Settings, Clock, FileText } from 'lucide-react'
 import { format } from 'date-fns'
-import { Button, Card, CardHeader, CardTitle, CardContent, StatusChip, PageLoader, TagChip } from '../components/ui'
+import { Button, Card, CardHeader, CardTitle, CardContent, PageLoader, TagChip, PipelineStatusToggle, StatusChip } from '../components/ui'
 import { RunLogsModal } from '../components/RunLogsModal'
-import { usePipeline, usePipelineRuns, useTriggerRun } from '../hooks'
+import { usePipeline, usePipelineRuns, useTriggerRun, useUpdatePipeline } from '../hooks'
 import type { PipelineRun } from '../api'
 
 export function PipelineDetailPage() {
@@ -12,6 +12,7 @@ export function PipelineDetailPage() {
   const { data: pipeline, isLoading: pipelineLoading } = usePipeline(id!)
   const { data: runs, isLoading: runsLoading } = usePipelineRuns(id!)
   const triggerRun = useTriggerRun()
+  const updatePipeline = useUpdatePipeline()
   const [selectedRun, setSelectedRun] = useState<PipelineRun | null>(null)
 
   if (pipelineLoading || !pipeline) {
@@ -30,7 +31,11 @@ export function PipelineDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-bizon-text">{pipeline.name}</h1>
-            <StatusChip status={pipeline.enabled ? 'enabled' : 'disabled'} />
+            <PipelineStatusToggle
+              enabled={pipeline.enabled}
+              onChange={(enabled) => updatePipeline.mutate({ id: id!, data: { enabled } })}
+              disabled={updatePipeline.isPending}
+            />
           </div>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-bizon-textSecondary">

@@ -22,13 +22,13 @@ make lint         # Run linter
 
 ## Custom Sources
 
-Custom sources are the primary way users extend bizon. They live in `custom-sources/`.
+Custom sources are the primary way users extend bizon. They live in `custom_sources/`.
 
 ### Creating a Custom Source
 
 When asked to create a custom source:
 
-1. Create a directory: `custom-sources/{source_name}/`
+1. Create a directory: `custom_sources/{source_name}/`
 2. Create `source.py` with:
    - A config class extending `SourceConfig`
    - A source class extending `AbstractSource`
@@ -82,7 +82,7 @@ class MySource(AbstractSource):
 ```json
 {
   "source": {
-    "source_file_path": "/custom-sources/my_source/source.py",
+    "source_file_path": "/custom_sources/my_source/source.py",
     "name": "my_source",
     "stream": "stream1"
   },
@@ -101,7 +101,7 @@ class MySource(AbstractSource):
 - Worker: `bizon_platform_lite/worker/`
 - Scheduler: `bizon_platform_lite/scheduler/`
 - Frontend: `ui/`
-- Custom sources: `custom-sources/`
+- Custom sources: `custom_sources/`
 - Tests: `tests/`
 
 ## Available Destinations
@@ -134,7 +134,7 @@ from bizon.source.discover import get_external_source_class_by_source_and_stream
 source_class = get_external_source_class_by_source_and_stream(
     source_name='SOURCE_NAME',
     stream_name='STREAM_NAME',
-    filepath='custom-sources/SOURCE_NAME/source.py'
+    filepath='custom_sources/SOURCE_NAME/source.py'
 )
 print(f'Streams: {source_class.streams()}')
 

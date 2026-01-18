@@ -7,6 +7,7 @@ import {
   PipelineCreatePage,
   ConnectorsPage,
   SavedPage,
+  CustomSourcesPage,
 } from './pages'
 
 function App() {
@@ -17,7 +18,9 @@ function App() {
         <Route path="/pipelines" element={<PipelinesPage />} />
         <Route path="/pipelines/new" element={<PipelineCreatePage />} />
         <Route path="/pipelines/:id" element={<PipelineDetailPage />} />
+        <Route path="/pipelines/:id/edit" element={<PipelineCreatePage />} />
         <Route path="/connectors" element={<ConnectorsPage />} />
+        <Route path="/custom-sources" element={<CustomSourcesPage />} />
         <Route path="/saved" element={<SavedPage />} />
       </Routes>
     </PageShell>

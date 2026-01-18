@@ -49,6 +49,7 @@ def create_app() -> FastAPI:
     # Include routers
     from bizon_platform_lite.api.routes import (
         connectors,
+        custom_sources,
         health,
         pipelines,
         saved_connectors,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(stats.router, prefix="/api")
     app.include_router(pipelines.router, prefix="/api")
     app.include_router(connectors.router, prefix="/api")
+    app.include_router(custom_sources.router, prefix="/api")
     app.include_router(saved_connectors.router, prefix="/api")
 
     return app

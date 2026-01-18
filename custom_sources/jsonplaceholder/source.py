@@ -7,7 +7,7 @@ Use this as a template for creating your own custom sources.
 Usage in pipeline config:
 {
     "source": {
-        "source_file_path": "/custom-sources/jsonplaceholder/source.py",
+        "source_file_path": "/custom_sources/jsonplaceholder/source.py",
         "name": "jsonplaceholder",
         "stream": "posts"
     },

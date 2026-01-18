@@ -148,12 +148,12 @@ async def test_create_pipeline(client: AsyncClient):
 
 ## Creating Custom Sources
 
-Custom sources allow you to connect to any data source. They live in `custom-sources/`.
+Custom sources allow you to connect to any data source. They live in `custom_sources/`.
 
 ### Structure
 
 ```
-custom-sources/
+custom_sources/
 └── my_source/
     └── source.py
 ```
@@ -212,7 +212,7 @@ from bizon.source.discover import get_external_source_class_by_source_and_stream
 source_class = get_external_source_class_by_source_and_stream(
     source_name='my_source',
     stream_name='stream1',
-    filepath='custom-sources/my_source/source.py'
+    filepath='custom_sources/my_source/source.py'
 )
 print(f'Streams: {source_class.streams()}')
 

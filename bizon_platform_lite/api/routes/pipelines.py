@@ -226,7 +226,7 @@ async def sync_other_streams(pipeline_id: uuid.UUID) -> list[Pipeline]:
             from bizon_platform_lite.settings import settings
 
             # Convert docker path to local path
-            local_path = source_file_path.replace("/custom-sources/", "")
+            local_path = source_file_path.replace("/custom_sources/", "")
             full_path = os.path.join(settings.custom_sources_dir, local_path)
 
             if os.path.exists(full_path):

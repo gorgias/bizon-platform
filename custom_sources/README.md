@@ -4,7 +4,7 @@ Custom sources let you create your own data connectors by writing Python code th
 
 ## Quick Start
 
-1. Create a folder for your source in `custom-sources/`
+1. Create a folder for your source in `custom_sources/`
 2. Create a `source.py` file with your source class
 3. Reference it in your pipeline config with `source_file_path`
 
@@ -18,7 +18,7 @@ See `jsonplaceholder/source.py` for a complete working example.
 {
   "name": "jsonplaceholder to logger",
   "source": {
-    "source_file_path": "/custom-sources/jsonplaceholder/source.py",
+    "source_file_path": "/custom_sources/jsonplaceholder/source.py",
     "name": "jsonplaceholder",
     "stream": "posts"
   },
@@ -146,7 +146,7 @@ def get_records_after(self, source_state, pagination=None) -> SourceIteration:
 ## Directory Structure
 
 ```
-custom-sources/
+custom_sources/
 ├── README.md              # This file
 ├── jsonplaceholder/       # Tutorial example
 │   └── source.py
@@ -166,7 +166,7 @@ from bizon.source.discover import get_external_source_class_by_source_and_stream
 source_class = get_external_source_class_by_source_and_stream(
     source_name='my_source',
     stream_name='my_stream',
-    filepath='custom-sources/my_source/source.py'
+    filepath='custom_sources/my_source/source.py'
 )
 print(f'Streams: {source_class.streams()}')
 

@@ -24,7 +24,7 @@ Command-line interface for local development, scripting, and CI/CD integration. 
 bizon init
 # Creates:
 # - bizon.yaml (project config)
-# - custom-sources/ (directory)
+# - custom_sources/ (directory)
 # - pipelines/ (directory for YAML definitions)
 
 # Validate project structure
@@ -36,7 +36,7 @@ bizon validate
 ```bash
 # Create a new custom source from template
 bizon source create my_api
-# Creates custom-sources/my_api/source.py with boilerplate
+# Creates custom_sources/my_api/source.py with boilerplate
 
 # Test custom source locally
 bizon source test my_api --stream users
@@ -127,7 +127,7 @@ bizon pull --pipeline stripe-to-bigquery
 ```
 my-project/
 ├── bizon.yaml              # Project configuration
-├── custom-sources/
+├── custom_sources/
 │   ├── my_api/
 │   │   └── source.py
 │   └── another_source/
@@ -152,7 +152,7 @@ server:
 
 # Custom source settings
 custom_sources:
-  directory: ./custom-sources
+  directory: ./custom_sources
 
 # Pipeline settings
 pipelines:
@@ -361,7 +361,7 @@ console = Console()
 
 def test_source(name: str, stream: str):
     """Test a custom source locally."""
-    source_path = Path(f"custom-sources/{name}/source.py")
+    source_path = Path(f"custom_sources/{name}/source.py")
 
     if not source_path.exists():
         console.print(f"[red]Source not found: {source_path}[/red]")

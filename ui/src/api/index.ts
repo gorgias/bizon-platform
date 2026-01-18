@@ -2,6 +2,7 @@ export * from './types'
 export * from './client'
 export * from './pipelines'
 export * from './saved'
+export * from './customSources'
 
 import { apiClient } from './client'
 import type { PlatformStats } from './types'

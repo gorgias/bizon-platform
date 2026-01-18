@@ -114,7 +114,7 @@ Environment variables:
 | `DATABASE_URL` | `postgresql+asyncpg://bizon:bizon@localhost:5432/bizon_platform_lite` | PostgreSQL connection URL |
 | `ENCRYPTION_KEY` | (required) | Fernet key for encrypting configs |
 | `STORAGE_LOCAL_PATH` | `/tmp/bizon-outputs` | Path for pipeline output files |
-| `CUSTOM_SOURCES_DIR` | `./custom-sources` | Directory for custom source files |
+| `CUSTOM_SOURCES_DIR` | `./custom_sources` | Directory for custom source files |
 | `CORS_ALLOWED_ORIGINS` | `["http://localhost:5173", "http://localhost:3000"]` | Allowed CORS origins |
 
 Generate encryption key:
@@ -174,7 +174,7 @@ Custom sources let you create your own data connectors by writing Python code.
 
 ### Quick Start
 
-1. Create a folder in `custom-sources/` (e.g., `my_api/`)
+1. Create a folder in `custom_sources/` (e.g., `my_api/`)
 2. Create `source.py` with a class extending `AbstractSource`
 3. Reference it in your pipeline with `source_file_path`
 
@@ -184,7 +184,7 @@ Custom sources let you create your own data connectors by writing Python code.
 {
   "name": "custom source to bigquery",
   "source": {
-    "source_file_path": "/custom-sources/jsonplaceholder/source.py",
+    "source_file_path": "/custom_sources/jsonplaceholder/source.py",
     "name": "jsonplaceholder",
     "stream": "posts"
   },
@@ -200,9 +200,9 @@ Custom sources let you create your own data connectors by writing Python code.
 
 ### Tutorial
 
-See `custom-sources/jsonplaceholder/source.py` for a complete working example.
+See `custom_sources/jsonplaceholder/source.py` for a complete working example.
 
-Full documentation: `custom-sources/README.md`
+Full documentation: `custom_sources/README.md`
 
 ## Example Pipeline Config
 
@@ -292,7 +292,7 @@ bizon-platform-lite/
 │   └── settings.py          # Configuration
 ├── ui/                      # React frontend
 ├── tests/                   # Test suite
-├── custom-sources/          # Custom Python sources
+├── custom_sources/          # Custom Python sources
 ├── docker-compose.yml       # Dev + prod profiles
 ├── Dockerfile               # Multi-stage build
 ├── Makefile                 # Build commands

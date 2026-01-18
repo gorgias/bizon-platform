@@ -1,4 +1,4 @@
-.PHONY: dev prod build build-dev down clean logs test lint
+.PHONY: dev prod build build-dev down clean logs test lint seed seed-reset
 
 # Development with hot reload
 dev:
@@ -46,3 +46,11 @@ lint:
 # Generate encryption key
 key:
 	@python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+# Seed database with demo data
+seed:
+	uv run python -m bizon_platform_lite.seed
+
+# Seed database (reset first)
+seed-reset:
+	uv run python -m bizon_platform_lite.seed --reset

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Plus, Play, MoreVertical, Copy, Trash2, ChevronDown, ChevronRight, Layers, GitBranch, X, Search } from 'lucide-react'
 import { format } from 'date-fns'
-import { Button, Card, StatusChip, PageLoader, EmptyState, TagChip } from '../components/ui'
+import { Button, Card, PipelineStatusToggle, PageLoader, EmptyState, TagChip } from '../components/ui'
 import {
   usePipelines,
   useTriggerRun,
@@ -9,6 +9,7 @@ import {
   useDuplicatePipeline,
   useSyncOtherStreams,
   useTags,
+  useUpdatePipeline,
 } from '../hooks'
 import { useState, useMemo } from 'react'
 import type { Pipeline } from '../api'
@@ -88,6 +89,7 @@ export function PipelinesPage() {
   const deletePipeline = useDeletePipeline()
   const duplicatePipeline = useDuplicatePipeline()
   const syncOtherStreams = useSyncOtherStreams()
+  const updatePipeline = useUpdatePipeline()
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [groupBy, setGroupBy] = useState<GroupBy>('none')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
@@ -369,7 +371,10 @@ export function PipelinesPage() {
                           >
                             {pipeline.name}
                           </Link>
-                          <StatusChip status={pipeline.enabled ? 'enabled' : 'disabled'} />
+                          <PipelineStatusToggle
+                              enabled={pipeline.enabled}
+                              onChange={(enabled) => updatePipeline.mutate({ id: pipeline.id, data: { enabled } })}
+                            />
                           {pipeline.schedule && (
                             <span className="text-xs text-bizon-muted font-mono">
                               {pipeline.schedule}

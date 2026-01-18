@@ -1,9 +1,11 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { Button, Card, CardHeader, CardTitle, CardContent, TagInput } from '../components/ui'
+import { Button, Card, CardHeader, CardTitle, CardContent, TagInput, PageLoader } from '../components/ui'
 import {
   useCreatePipeline,
+  useUpdatePipeline,
+  usePipeline,
   useSourceConnectors,
   useDestinationConnectors,
   useCustomSources,
@@ -13,30 +15,92 @@ import type { CreatePipelineRequest } from '../api'
 
 type SourceType = 'builtin' | 'custom'
 
+const SCHEDULE_PRESETS = [
+  { label: 'No schedule (manual only)', value: '' },
+  { label: 'Every hour', value: '0 * * * *' },
+  { label: 'Every 6 hours', value: '0 */6 * * *' },
+  { label: 'Every day at midnight', value: '0 0 * * *' },
+  { label: 'Every day at 9am', value: '0 9 * * *' },
+  { label: 'Every Monday at 9am', value: '0 9 * * 1' },
+  { label: 'Every month (1st at midnight)', value: '0 0 1 * *' },
+  { label: 'Custom...', value: 'custom' },
+]
+
+interface FormData {
+  name: string
+  sourceType: SourceType
+  sourceName: string
+  sourceStream: string
+  customSourceName: string
+  customSourceStream: string
+  customSourceFilePath: string
+  destinationName: string
+  schedulePreset: string
+  scheduleCustom: string
+  enabled: boolean
+  tags: string[]
+}
+
+const initialFormData: FormData = {
+  name: '',
+  sourceType: 'builtin',
+  sourceName: '',
+  sourceStream: '',
+  customSourceName: '',
+  customSourceStream: '',
+  customSourceFilePath: '',
+  destinationName: '',
+  schedulePreset: '',
+  scheduleCustom: '',
+  enabled: true,
+  tags: [],
+}
+
 export function PipelineCreatePage() {
+  const { id } = useParams<{ id: string }>()
+  const isEditMode = !!id
   const navigate = useNavigate()
   const createPipeline = useCreatePipeline()
+  const updatePipeline = useUpdatePipeline()
+  const { data: pipeline, isLoading: isPipelineLoading } = usePipeline(id || '')
   const { data: sources } = useSourceConnectors()
   const { data: destinations } = useDestinationConnectors()
   const { data: customSources } = useCustomSources()
   const { data: existingTags } = useTags()
 
-  const [formData, setFormData] = useState({
-    name: '',
-    sourceType: 'builtin' as SourceType,
-    // Built-in source fields
-    sourceName: '',
-    sourceStream: '',
-    // Custom source fields
-    customSourceName: '',
-    customSourceStream: '',
-    customSourceFilePath: '',
-    // Common fields
-    destinationName: '',
-    schedule: '',
-    enabled: true,
-    tags: [] as string[],
-  })
+  const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [isInitialized, setIsInitialized] = useState(!isEditMode)
+
+  // Populate form when editing
+  useEffect(() => {
+    if (isEditMode && pipeline && !isInitialized) {
+      const config = pipeline.config
+      const sourceConfig = config.source || {}
+      const isCustomSource = !!sourceConfig.source_file_path
+
+      // Check if schedule matches a preset
+      const schedule = pipeline.schedule || ''
+      const matchingPreset = SCHEDULE_PRESETS.find(p => p.value === schedule && p.value !== 'custom')
+      const schedulePreset = matchingPreset ? schedule : (schedule ? 'custom' : '')
+      const scheduleCustom = matchingPreset ? '' : schedule
+
+      setFormData({
+        name: pipeline.name,
+        sourceType: isCustomSource ? 'custom' : 'builtin',
+        sourceName: isCustomSource ? '' : (sourceConfig.name || ''),
+        sourceStream: isCustomSource ? '' : (sourceConfig.stream || ''),
+        customSourceName: isCustomSource ? (sourceConfig.name || '') : '',
+        customSourceStream: isCustomSource ? (sourceConfig.stream || '') : '',
+        customSourceFilePath: sourceConfig.source_file_path || '',
+        destinationName: config.destination?.name || '',
+        schedulePreset,
+        scheduleCustom,
+        enabled: pipeline.enabled,
+        tags: pipeline.tags || [],
+      })
+      setIsInitialized(true)
+    }
+  }, [isEditMode, pipeline, isInitialized])
 
   const selectedSource = sources?.find((s) => s.name === formData.sourceName)
   const selectedCustomSource = customSources?.find((s) => s.name === formData.customSourceName)
@@ -45,6 +109,9 @@ export function PipelineCreatePage() {
     e.preventDefault()
 
     const isCustom = formData.sourceType === 'custom'
+    const schedule = formData.schedulePreset === 'custom'
+      ? formData.scheduleCustom
+      : formData.schedulePreset
 
     const request: CreatePipelineRequest = {
       name: formData.name,
@@ -69,31 +136,44 @@ export function PipelineCreatePage() {
           config: {},
         },
       },
-      schedule: formData.schedule || undefined,
+      schedule: schedule || undefined,
       enabled: formData.enabled,
       tags: formData.tags.length > 0 ? formData.tags : undefined,
     }
 
     try {
-      await createPipeline.mutateAsync(request)
-      navigate('/pipelines')
+      if (isEditMode && id) {
+        await updatePipeline.mutateAsync({ id, data: request })
+        navigate(`/pipelines/${id}`)
+      } else {
+        await createPipeline.mutateAsync(request)
+        navigate('/pipelines')
+      }
     } catch (error) {
-      console.error('Failed to create pipeline:', error)
+      console.error(`Failed to ${isEditMode ? 'update' : 'create'} pipeline:`, error)
     }
+  }
+
+  const isSubmitting = createPipeline.isPending || updatePipeline.isPending
+
+  if (isEditMode && isPipelineLoading) {
+    return <PageLoader />
   }
 
   const inputClassName =
     'w-full px-3 py-2 bg-bizon-bg border border-bizon-border rounded-lg text-bizon-text focus:outline-none focus:ring-2 focus:ring-bizon-primary'
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-4">
-        <Link to="/pipelines">
+        <Link to={isEditMode ? `/pipelines/${id}` : '/pipelines'}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold text-bizon-text">Create Pipeline</h1>
+        <h1 className="text-2xl font-bold text-bizon-text">
+          {isEditMode ? 'Edit Pipeline' : 'Create Pipeline'}
+        </h1>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -233,7 +313,7 @@ export function PipelineCreatePage() {
                   ) : (
                     <p className="text-sm text-bizon-muted">
                       No custom sources found. Add sources to{' '}
-                      <code className="bg-bizon-surface px-1 rounded">custom-sources/</code>{' '}
+                      <code className="bg-bizon-surface px-1 rounded">custom_sources/</code>{' '}
                       directory.
                     </p>
                   )}
@@ -252,7 +332,7 @@ export function PipelineCreatePage() {
                           setFormData({ ...formData, customSourceFilePath: e.target.value })
                         }
                         className={`${inputClassName} font-mono text-sm`}
-                        placeholder="/custom-sources/my_source/source.py"
+                        placeholder="/custom_sources/my_source/source.py"
                         required
                       />
                     </div>
@@ -301,15 +381,32 @@ export function PipelineCreatePage() {
 
             <div>
               <label className="block text-sm font-medium text-bizon-text mb-1">
-                Schedule (cron expression)
+                Schedule
               </label>
-              <input
-                type="text"
-                value={formData.schedule}
-                onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                className={`${inputClassName} font-mono`}
-                placeholder="0 9 * * * (optional)"
-              />
+              <select
+                value={formData.schedulePreset}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  schedulePreset: e.target.value,
+                  scheduleCustom: e.target.value === 'custom' ? formData.scheduleCustom : ''
+                })}
+                className={inputClassName}
+              >
+                {SCHEDULE_PRESETS.map((preset) => (
+                  <option key={preset.value} value={preset.value}>
+                    {preset.label}{preset.value && preset.value !== 'custom' ? ` (${preset.value})` : ''}
+                  </option>
+                ))}
+              </select>
+              {formData.schedulePreset === 'custom' && (
+                <input
+                  type="text"
+                  value={formData.scheduleCustom}
+                  onChange={(e) => setFormData({ ...formData, scheduleCustom: e.target.value })}
+                  className={`${inputClassName} font-mono mt-2`}
+                  placeholder="0 9 * * * (minute hour day month weekday)"
+                />
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -339,13 +436,15 @@ export function PipelineCreatePage() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Link to="/pipelines">
+              <Link to={isEditMode ? `/pipelines/${id}` : '/pipelines'}>
                 <Button type="button" variant="secondary">
                   Cancel
                 </Button>
               </Link>
-              <Button type="submit" disabled={createPipeline.isPending}>
-                {createPipeline.isPending ? 'Creating...' : 'Create Pipeline'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting
+                  ? isEditMode ? 'Saving...' : 'Creating...'
+                  : isEditMode ? 'Save Changes' : 'Create Pipeline'}
               </Button>
             </div>
           </CardContent>

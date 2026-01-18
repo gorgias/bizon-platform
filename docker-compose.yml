@@ -28,10 +28,10 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
-      CUSTOM_SOURCES_DIR: /custom-sources
+      CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
     volumes:
-      - ./custom-sources:/custom-sources
+      - ./custom_sources:/custom_sources
       - bizon_outputs:/tmp/bizon-outputs
     depends_on:
       db:
@@ -47,10 +47,10 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
-      CUSTOM_SOURCES_DIR: /custom-sources
+      CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
     volumes:
-      - ./custom-sources:/custom-sources
+      - ./custom_sources:/custom_sources
       - bizon_outputs:/tmp/bizon-outputs
     depends_on:
       db:
@@ -81,12 +81,12 @@ services:
       - "8000:8000"
     volumes:
       - ./bizon_platform_lite:/app/bizon_platform_lite
-      - ./custom-sources:/custom-sources
+      - ./custom_sources:/custom_sources
       - bizon_outputs:/tmp/bizon-outputs
     environment:
       DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
-      CUSTOM_SOURCES_DIR: /custom-sources
+      CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       DEBUG: "true"
     depends_on:
@@ -102,12 +102,12 @@ services:
       target: backend
     volumes:
       - ./bizon_platform_lite:/app/bizon_platform_lite
-      - ./custom-sources:/custom-sources
+      - ./custom_sources:/custom_sources
       - bizon_outputs:/tmp/bizon-outputs
     environment:
       DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
-      CUSTOM_SOURCES_DIR: /custom-sources
+      CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       DEBUG: "true"
     depends_on:

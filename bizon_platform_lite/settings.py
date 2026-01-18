@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     storage_local_path: str = "/tmp/bizon-outputs"
 
     # Custom sources directory (local Python files)
-    custom_sources_dir: str = "./custom-sources"
+    custom_sources_dir: str = "./custom_sources"
 
     # Encryption (for config secrets)
     # Generate a key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

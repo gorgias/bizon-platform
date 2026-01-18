@@ -89,7 +89,7 @@ When this skill is invoked, follow these steps:
 
 ### 2. Create Source Directory
 ```bash
-mkdir -p custom-sources/{source_name}
+mkdir -p custom_sources/{source_name}
 ```
 
 ### 3. Generate source.py
@@ -259,7 +259,7 @@ from bizon.source.discover import get_external_source_class_by_source_and_stream
 source_class = get_external_source_class_by_source_and_stream(
     source_name='{source_name}',
     stream_name='{first_stream}',
-    filepath='custom-sources/{source_name}/source.py'
+    filepath='custom_sources/{source_name}/source.py'
 )
 print(f'✓ Streams: {source_class.streams()}')
 
@@ -282,7 +282,7 @@ if result.records:
 {
   "name": "{source_name} to logger",
   "source": {
-    "source_file_path": "/custom-sources/{source_name}/source.py",
+    "source_file_path": "/custom_sources/{source_name}/source.py",
     "name": "{source_name}",
     "stream": "{first_stream}"
   },

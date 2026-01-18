@@ -129,3 +129,30 @@ export interface UpdateSavedConnectorRequest {
   config?: Record<string, unknown>
   description?: string
 }
+
+// Custom source types
+export interface CustomSourceCode {
+  name: string
+  code: string
+  file_path: string
+}
+
+export interface TestConnectionRequest {
+  stream: string
+}
+
+export interface TestConnectionResponse {
+  success: boolean
+  message: string
+}
+
+export interface UploadSourceResponse {
+  name: string
+  file_path: string
+  streams: string[]
+  message: string
+}
+
+export interface DeleteSourceResponse {
+  message: string
+}

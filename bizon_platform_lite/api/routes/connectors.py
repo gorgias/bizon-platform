@@ -196,7 +196,7 @@ async def list_custom_sources() -> list[CustomSourceInfo]:
             streams = source_class.streams()
 
             # Build the file path as it should be referenced in Docker
-            docker_path = f"/custom-sources/{item}/source.py"
+            docker_path = f"/custom_sources/{item}/source.py"
 
             result.append(
                 CustomSourceInfo(

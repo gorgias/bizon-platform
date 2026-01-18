@@ -47,7 +47,7 @@ COPY alembic.ini ./
 RUN uv pip install --system -e .
 
 # Create directories
-RUN mkdir -p /tmp/bizon-outputs /custom-sources
+RUN mkdir -p /tmp/bizon-outputs /custom_sources
 
 # Default command runs the API
 CMD ["python", "-m", "bizon_platform_lite"]

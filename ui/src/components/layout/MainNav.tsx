@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, GitBranch, Database, Plug } from 'lucide-react'
+import { LayoutDashboard, GitBranch, Database, Plug, Code2 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/pipelines', icon: GitBranch, label: 'Pipelines' },
   { to: '/connectors', icon: Plug, label: 'Connectors' },
+  { to: '/custom-sources', icon: Code2, label: 'Custom Sources' },
   { to: '/saved', icon: Database, label: 'Saved' },
 ]
 
