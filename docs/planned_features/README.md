@@ -11,7 +11,7 @@ This document outlines the roadmap for Bizon. Features are organized by priority
 | P1 | [Pipeline Templates](#pipeline-templates) | Low | Planned |
 | P1 | [Observability Dashboard](#observability-dashboard) | Medium | Planned |
 | P2 | [CLI Tool](#cli-tool) | Medium | Planned |
-| P2 | [GitHub Sync](#github-sync) | Medium | Planned |
+| P2 | [GitHub Sync](#github-sync) | Medium | **Implemented** |
 | P3 | [Connector Marketplace](#connector-marketplace) | High | Future |
 
 ---
@@ -95,11 +95,11 @@ bizon deploy                  # Push to server
 
 ### GitHub Sync
 
-**Status:** Planned
+**Status:** Implemented
 **Effort:** Medium (port from main platform)
 **Doc:** [06-github-sync.md](./06-github-sync.md)
 
-GitOps workflow for pipeline management. Define pipelines as YAML in git, sync automatically.
+GitOps workflow for custom sources. Sync custom source code from a git repository on startup. Configure via `GIT_SYNC_*` environment variables.
 
 ```
 pipelines/

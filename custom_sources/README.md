@@ -8,9 +8,14 @@ Custom sources let you create your own data connectors by writing Python code th
 2. Create a `source.py` file with your source class
 3. Reference it in your pipeline config with `source_file_path`
 
-## Example: JSONPlaceholder Source
+## Examples
 
-See `jsonplaceholder/source.py` for a complete working example.
+Two working examples are included:
+
+- **jsonplaceholder/** - REST API source (JSONPlaceholder fake API)
+- **pokeapi/** - REST API source (Pokemon API)
+
+See `jsonplaceholder/source.py` or `pokeapi/source.py` for complete working examples.
 
 ### Pipeline Config
 
@@ -148,13 +153,31 @@ def get_records_after(self, source_state, pagination=None) -> SourceIteration:
 ```
 custom_sources/
 ├── README.md              # This file
-├── jsonplaceholder/       # Tutorial example
+├── jsonplaceholder/       # Example: JSONPlaceholder API
 │   └── source.py
-└── my_custom_source/      # Your sources
+├── pokeapi/               # Example: Pokemon API
+│   └── source.py
+└── my_custom_source/      # Your custom sources
     └── source.py
 ```
 
 ## Testing Your Source
+
+### Using Make Commands (Recommended)
+
+```bash
+# List available custom sources
+make list-sources
+
+# Test connection and fetch sample records
+make test-source SOURCE=pokeapi STREAM=pokemon
+
+# Fetch sample records
+make fetch-source SOURCE=pokeapi STREAM=pokemon
+
+# Run a test pipeline to logger
+make run-source SOURCE=pokeapi STREAM=pokemon
+```
 
 ### Quick Test (Python)
 
