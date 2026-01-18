@@ -54,3 +54,22 @@ seed:
 # Seed database (reset first)
 seed-reset:
 	uv run python -m bizon_platform_lite.seed --reset
+
+# Custom source testing
+# Usage: make test-source SOURCE=pokeapi STREAM=pokemon
+test-source:
+	uv run python -m bizon_platform_lite.cli.test_source check $(SOURCE) $(STREAM)
+
+# Fetch sample records from a custom source
+# Usage: make fetch-source SOURCE=pokeapi STREAM=pokemon
+fetch-source:
+	uv run python -m bizon_platform_lite.cli.test_source fetch $(SOURCE) $(STREAM) --limit 5
+
+# Run a logger pipeline for a custom source
+# Usage: make run-source SOURCE=pokeapi STREAM=pokemon
+run-source:
+	uv run python -m bizon_platform_lite.cli.test_source run $(SOURCE) $(STREAM)
+
+# List available custom sources
+list-sources:
+	uv run python -m bizon_platform_lite.cli.test_source list

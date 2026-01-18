@@ -1,25 +1,42 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, RefreshCw } from 'lucide-react'
+import { Plus, Search, RefreshCw, GitBranch, Check, X } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button, PageLoader, EmptyState } from '../components/ui'
 import {
   CustomSourceCard,
-  SourceCodeModal,
   TestConnectionModal,
   UploadSourceModal,
 } from '../components/custom-sources'
-import { useCustomSources, useDeleteCustomSource } from '../hooks'
+import { useCustomSources, useDeleteCustomSource, useGitSyncStatus, useSyncFromGit } from '../hooks'
 import type { CustomSource } from '../api'
 
 export function CustomSourcesPage() {
   const queryClient = useQueryClient()
   const { data: sources, isLoading, isFetching } = useCustomSources()
   const deleteSource = useDeleteCustomSource()
+  const { data: gitSyncStatus } = useGitSyncStatus()
+  const syncFromGit = useSyncFromGit()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [codeModalSource, setCodeModalSource] = useState<string | null>(null)
   const [testModalSource, setTestModalSource] = useState<CustomSource | null>(null)
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null)
+
+  const handleSync = async () => {
+    setSyncResult(null)
+    try {
+      const result = await syncFromGit.mutateAsync()
+      setSyncResult({ success: result.success, message: result.message })
+      // Clear message after 5 seconds
+      setTimeout(() => setSyncResult(null), 5000)
+    } catch (error) {
+      setSyncResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Sync failed',
+      })
+      setTimeout(() => setSyncResult(null), 5000)
+    }
+  }
 
   const filteredSources = useMemo(() => {
     if (!sources) return []
@@ -54,6 +71,16 @@ export function CustomSourcesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {gitSyncStatus?.enabled && (
+            <Button
+              variant="secondary"
+              onClick={handleSync}
+              disabled={syncFromGit.isPending}
+            >
+              <GitBranch className={`h-4 w-4 mr-2 ${syncFromGit.isPending ? 'animate-pulse' : ''}`} />
+              {syncFromGit.isPending ? 'Syncing...' : 'Sync from Git'}
+            </Button>
+          )}
           <Button
             variant="secondary"
             onClick={() => queryClient.invalidateQueries({ queryKey: ['connectors', 'custom-sources'] })}
@@ -62,12 +89,30 @@ export function CustomSourcesPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
             Scan
           </Button>
-          <Button onClick={() => setUploadModalOpen(true)}>
+          <Button variant="secondary" onClick={() => setUploadModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Upload
           </Button>
         </div>
       </div>
+
+      {/* Git Sync Result Message */}
+      {syncResult && (
+        <div
+          className={`flex items-center gap-2 p-3 rounded-lg ${
+            syncResult.success
+              ? 'bg-bizon-success/10 border border-bizon-success/30 text-bizon-success'
+              : 'bg-bizon-danger/10 border border-bizon-danger/30 text-bizon-danger'
+          }`}
+        >
+          {syncResult.success ? (
+            <Check className="h-4 w-4 flex-shrink-0" />
+          ) : (
+            <X className="h-4 w-4 flex-shrink-0" />
+          )}
+          <span className="text-sm">{syncResult.message}</span>
+        </div>
+      )}
 
       {/* Search */}
       {sources && sources.length > 0 && (
@@ -108,7 +153,6 @@ export function CustomSourcesPage() {
             <CustomSourceCard
               key={source.name}
               source={source}
-              onViewCode={() => setCodeModalSource(source.name)}
               onTest={() => setTestModalSource(source)}
               onDelete={() => handleDelete(source)}
               isDeleting={deleteSource.isPending && deleteSource.variables === source.name}
@@ -118,12 +162,6 @@ export function CustomSourcesPage() {
       )}
 
       {/* Modals */}
-      <SourceCodeModal
-        isOpen={!!codeModalSource}
-        onClose={() => setCodeModalSource(null)}
-        sourceName={codeModalSource || ''}
-      />
-
       <TestConnectionModal
         isOpen={!!testModalSource}
         onClose={() => setTestModalSource(null)}

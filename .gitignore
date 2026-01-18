@@ -53,3 +53,6 @@ uv.lock
 
 # TypeScript
 *.tsbuildinfo
+
+# Local secrets for testing custom sources
+.secrets/

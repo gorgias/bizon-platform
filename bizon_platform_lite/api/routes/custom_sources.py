@@ -54,6 +54,25 @@ class DeleteResponse(BaseModel):
     message: str
 
 
+class GitSyncResponse(BaseModel):
+    """Response from git sync operation."""
+
+    success: bool
+    message: str
+    commit_hash: str | None = None
+    files_updated: int = 0
+    synced_at: str | None = None
+
+
+class GitSyncStatusResponse(BaseModel):
+    """Response for git sync status/configuration."""
+
+    enabled: bool
+    repo_url: str | None = None
+    branch: str = "main"
+    path: str = "custom_sources"
+
+
 def _get_source_class(source_name: str):
     """Load and return the source class from a custom source."""
     from bizon.source.source import AbstractSource
@@ -293,3 +312,37 @@ async def delete_source(name: str) -> DeleteResponse:
         return DeleteResponse(message=f"Successfully deleted source '{name}'")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete source: {str(e)}")
+
+
+@router.get("/git-sync/status", response_model=GitSyncStatusResponse)
+async def get_git_sync_status() -> GitSyncStatusResponse:
+    """Get git sync configuration status."""
+    return GitSyncStatusResponse(
+        enabled=settings.git_sync_enabled,
+        repo_url=settings.git_sync_repo_url if settings.git_sync_enabled else None,
+        branch=settings.git_sync_branch,
+        path=settings.git_sync_path,
+    )
+
+
+@router.post("/git-sync", response_model=GitSyncResponse)
+async def sync_from_git() -> GitSyncResponse:
+    """Sync custom sources from the configured git repository."""
+    from bizon_platform_lite.git_sync import sync_from_git as do_sync
+
+    if not settings.git_sync_enabled:
+        raise HTTPException(status_code=400, detail="Git sync is not enabled")
+
+    if not settings.git_sync_repo_url:
+        raise HTTPException(status_code=400, detail="Git sync repo URL not configured")
+
+    # Run sync in executor to not block
+    result = await asyncio.get_event_loop().run_in_executor(None, do_sync)
+
+    return GitSyncResponse(
+        success=result.success,
+        message=result.message,
+        commit_hash=result.commit_hash,
+        files_updated=result.files_updated,
+        synced_at=result.synced_at.isoformat() if result.synced_at else None,
+    )

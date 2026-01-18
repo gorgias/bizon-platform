@@ -1,7 +1,8 @@
 import { apiClient } from './client'
 import type {
-  CustomSource,
   CustomSourceCode,
+  GitSyncResponse,
+  GitSyncStatusResponse,
   TestConnectionRequest,
   TestConnectionResponse,
   UploadSourceResponse,
@@ -10,9 +11,6 @@ import type {
 const API_BASE = '/api'
 
 export const customSourcesApi = {
-  list: () =>
-    apiClient.get<CustomSource[]>('/connectors/custom-sources'),
-
   getCode: (name: string) =>
     apiClient.get<CustomSourceCode>(`/custom-sources/${name}/code`),
 
@@ -44,4 +42,11 @@ export const customSourcesApi = {
 
   delete: (name: string) =>
     apiClient.delete(`/custom-sources/${name}`),
+
+  // Git sync
+  getGitSyncStatus: () =>
+    apiClient.get<GitSyncStatusResponse>('/custom-sources/git-sync/status'),
+
+  syncFromGit: () =>
+    apiClient.post<GitSyncResponse>('/custom-sources/git-sync', {}),
 }

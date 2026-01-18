@@ -10,8 +10,12 @@ from bizon_platform_lite.settings import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan - start scheduler on startup."""
-    from bizon_platform_lite.scheduler import start_scheduler, shutdown_scheduler
+    """Application lifespan - start scheduler and git sync on startup."""
+    from bizon_platform_lite.git_sync import sync_on_startup
+    from bizon_platform_lite.scheduler import shutdown_scheduler, start_scheduler
+
+    # Sync custom sources from git if enabled
+    sync_on_startup()
 
     start_scheduler()
     yield

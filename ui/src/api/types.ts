@@ -156,3 +156,19 @@ export interface UploadSourceResponse {
 export interface DeleteSourceResponse {
   message: string
 }
+
+// Git sync types
+export interface GitSyncStatusResponse {
+  enabled: boolean
+  repo_url: string | null
+  branch: string
+  path: string
+}
+
+export interface GitSyncResponse {
+  success: boolean
+  message: string
+  commit_hash: string | null
+  files_updated: number
+  synced_at: string | null
+}

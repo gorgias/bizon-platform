@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     # Custom sources directory (local Python files)
     custom_sources_dir: str = "./custom_sources"
 
+    # Git sync for custom sources (production deployments)
+    git_sync_enabled: bool = False
+    git_sync_repo_url: Optional[str] = None  # e.g., https://github.com/org/repo.git
+    git_sync_branch: str = "main"
+    git_sync_path: str = "custom_sources"  # subdirectory in repo to sync
+    git_sync_token: Optional[str] = None  # PAT for private repos
+
     # Encryption (for config secrets)
     # Generate a key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     encryption_key: Optional[str] = None
