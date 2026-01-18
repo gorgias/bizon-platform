@@ -2,6 +2,20 @@
 
 A lightweight, single-tenant platform for running data pipelines. No authentication required.
 
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/bizon-data/bizon-platform-lite)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/bizon-data/bizon-platform-lite)
+
+## Try It Now
+
+```bash
+git clone https://github.com/bizon-data/bizon-platform-lite
+cd bizon-platform-lite
+make dev        # Start dev environment
+make seed       # Load sample pipelines
+```
+
+Open http://localhost:5173 to see the UI with pre-loaded demo pipelines.
+
 ## Features
 
 - **Pipeline CRUD** - Create, read, update, delete pipelines
