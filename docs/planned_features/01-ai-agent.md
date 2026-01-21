@@ -1,230 +1,299 @@
-# AI Agent
+# Bizon AI - Your Data Engineer
 
 **Priority:** P0
 **Effort:** High
 **Status:** Planned
 
-## Overview
+## Vision
 
-A conversational AI agent that manages the entire ETL workflow. Users interact via chat to create pipelines, generate custom sources, monitor runs, and troubleshoot issues.
+Bizon AI is an autonomous data engineer that manages your entire data pipeline infrastructure. It doesn't just help you build pipelines—it operates them, monitors them, heals them, and collaborates with you and other AI agents through code.
 
-**This is the primary differentiator for Bizon Cloud.**
+**Your repo is the shared codebase. Bizon AI is a team member.**
 
-## User Experience
+## Core Concept
 
-### Managing Pipelines
 ```
-User: Show me my pipelines
-
-Agent: You have 3 pipelines:
-       1. stripe-to-bigquery (enabled, daily at 2am)
-       2. hubspot-contacts (disabled)
-       3. postgres-sync (enabled, hourly)
-
-User: Run the stripe pipeline now
-
-Agent: Started stripe-to-bigquery. Run ID: abc123
-
-       Completed! Synced 1,247 records in 8.3s
+┌─────────────────────────────────────────────────────────────┐
+│  Git Repository (source of truth)                           │
+│                                                             │
+│  pipelines/                                                 │
+│    stripe-to-bigquery.yaml                                  │
+│    hubspot-sync.yaml                                        │
+│  sources/                                                   │
+│    my-crm/source.py                                         │
+│  destinations/                                              │
+│    custom-warehouse/destination.py                          │
+│  bizon.yaml                                                 │
+└─────────────────────────────────────────────────────────────┘
+                         │
+         ┌───────────────┼───────────────┐
+         ▼               ▼               ▼
+   ┌───────────┐   ┌───────────┐   ┌───────────┐
+   │  Bizon AI │   │  Cursor/  │   │  Human    │
+   │           │   │  Copilot  │   │  Engineer │
+   └───────────┘   └───────────┘   └───────────┘
+         │               │               │
+         └───────commit/PR───────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Bizon Platform                                             │
+│  - Syncs from repo                                          │
+│  - Executes pipelines                                       │
+│  - Reports metrics back                                     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Creating Pipelines
+## What Bizon AI Does
+
+### 1. Pipeline Management (Conversational)
+
 ```
-User: Create a pipeline from Stripe customers to BigQuery
+User: Create a pipeline to sync Stripe customers to BigQuery daily
 
-Agent: I'll set that up. What's your BigQuery project and dataset?
+Bizon AI: I'll set that up.
 
-User: acme-data, dataset raw
+          Created: pipelines/stripe-customers-to-bq.yaml
+          Schedule: Daily at 2:00 AM UTC
 
-Agent: Done! Created "stripe-customers-to-bigquery"
-       Scheduled daily at 2am. Want to run it now?
+          [View commit] [Run now]
 ```
 
-### Generating Custom Sources
+### 2. Source Generation (Autonomous)
+
 ```
-User: I need a connector for my company's API
+User: I need a connector for our internal CRM API
 
-Agent: I can generate that! Paste your API documentation (OpenAPI spec).
+Bizon AI: I'll generate that. Can you share the API docs?
 
-User: {"openapi": "3.0.0", "info": {"title": "MyCRM"}, ...}
+User: [pastes OpenAPI spec]
 
-Agent: Found 4 endpoints. Which streams do you need?
-       - /customers
-       - /orders
-       - /products
-       - /invoices
+Bizon AI: Generated sources/internal-crm/source.py
 
-User: customers and orders
+          Testing... ✓ Connected, fetched 3 sample records.
 
-Agent: What authentication does this API use?
+          [View commit] [Create pipeline with this source]
+```
 
-User: API key in header X-API-Key
+### 3. Self-Healing (Proactive)
 
-Agent: I need your API key to test the connector.
+```
+Bizon AI: ⚠️ Pipeline "hubspot-sync" failed at 3:42 AM
 
-User: sk_live_abc123
+          Error: API rate limit exceeded
 
-Agent: Testing... Connected! Fetched 3 sample records.
-       Source saved. Now let me create the pipeline...
+          I've fixed this by adding exponential backoff.
+
+          [View PR] [Auto-merged based on trust level]
+
+          Pipeline recovered. Next run succeeded.
+```
+
+### 4. Health Metrics (On-Demand)
+
+```
+User: How are my pipelines doing this week?
+
+Bizon AI: Here's your weekly summary:
+
+          ✓ 142 successful runs
+          ✗ 3 failures (all auto-recovered)
+          📊 2.4M records synced
+          ⏱️ Avg run time: 45s
+
+          [chart: runs over time]
+
+          Notable: stripe-to-bq volume up 30% vs last week.
+```
+
+### 5. Data Exploration (Conversational)
+
+```
+User: Show me recent customers from the CRM sync
+
+Bizon AI: Here are the last 10 customers synced:
+
+          | id  | name        | created_at |
+          |-----|-------------|------------|
+          | 142 | Acme Corp   | 2024-01-20 |
+          | 141 | Globex Inc  | 2024-01-19 |
+          ...
+
+          Total: 1,247 customers synced this month.
+```
+
+### 6. Collaboration (Git-Native)
+
+```
+Human commits sources/new-api/source.py via Cursor
+
+Bizon AI: I noticed a new source was added.
+
+          I've validated it and created a draft pipeline:
+          pipelines/new-api-to-warehouse.yaml
+
+          [View PR] [Approve and deploy]
+```
+
+## Trust Levels
+
+Users configure how autonomous Bizon AI should be:
+
+| Level | Name | Behavior |
+|-------|------|----------|
+| 1 | **Suggest** | Opens PRs, waits for human approval |
+| 2 | **Assist** | Auto-commits non-destructive changes, PRs for destructive |
+| 3 | **Autonomous** | Full self-healing, auto-deploys, alerts on major changes |
+
+```yaml
+# bizon.yaml
+ai:
+  trust_level: 2  # assist
+  auto_heal: true
+  require_approval_for:
+    - delete_pipeline
+    - modify_destination
 ```
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Bizon Cloud                                                    │
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Chat UI                                                  │  │
-│  │  - Message history                                        │  │
-│  │  - SSE streaming                                          │  │
-│  │  - Code blocks                                            │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  AI Agent Service (multi-tenant)                          │  │
-│  │                                                           │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │  │
-│  │  │  LangGraph  │  │   Tools     │  │   LLM       │       │  │
-│  │  │  (ReAct)    │──│  (below)    │  │  (Claude)   │       │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘       │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Tenant Namespace                                         │  │
-│  │  - Platform instance                                      │  │
-│  │  - Pipelines, runs, sources                               │  │
-│  │  - Isolated per customer                                  │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Bizon Cloud                                                │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  AI Agent Service                                     │  │
+│  │                                                       │  │
+│  │  - Conversational interface (chat)                    │  │
+│  │  - Source generation (templates + LLM)                │  │
+│  │  - Pipeline monitoring (continuous)                   │  │
+│  │  - Self-healing (diagnose + fix + deploy)             │  │
+│  │  - Git integration (commit, PR, merge)                │  │
+│  │  - Analytics (metrics, charts, samples)               │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                         │                                    │
+│                         ▼                                    │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Platform (per tenant)                                │  │
+│  │                                                       │  │
+│  │  - Pipeline execution                                 │  │
+│  │  - Scheduling                                         │  │
+│  │  - Run history + logs                                 │  │
+│  │  - Git sync                                           │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                         │                                    │
+│                         ▼                                    │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Customer's Git Repo                                  │  │
+│  │                                                       │  │
+│  │  - Pipelines as code                                  │  │
+│  │  - Sources as code                                    │  │
+│  │  - Bizon AI commits here                              │  │
+│  │  - Other agents (Cursor) commit here                  │  │
+│  │  - Humans commit here                                 │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Tool Catalog
+## Capabilities
 
-### Pipeline Management
-| Tool | Description |
-|------|-------------|
-| `list_pipelines` | List all pipelines with status |
-| `get_pipeline` | Get pipeline details |
-| `create_pipeline` | Create new pipeline |
-| `update_pipeline` | Modify pipeline |
-| `delete_pipeline` | Remove pipeline |
-
-### Run Management
-| Tool | Description |
-|------|-------------|
-| `trigger_run` | Execute pipeline |
-| `cancel_run` | Stop running pipeline |
-| `list_runs` | Get run history |
-| `get_run_logs` | Get execution logs |
-
-### Connector Discovery
-| Tool | Description |
-|------|-------------|
-| `list_sources` | Available source connectors |
-| `list_destinations` | Available destinations |
-| `get_source_streams` | Get streams for a source |
+### Pipeline Operations
+| Capability | Description |
+|------------|-------------|
+| Create pipeline | From conversation or API docs |
+| Modify pipeline | Schedule, config, source/destination |
+| Delete pipeline | With confirmation based on trust level |
+| Trigger run | On-demand execution |
+| View history | Run logs, status, metrics |
 
 ### Source Generation
-| Tool | Description |
-|------|-------------|
-| `parse_api_docs` | Extract endpoints from OpenAPI |
-| `generate_source` | Create Python connector |
-| `test_source` | Test with real credentials |
-| `save_source` | Save to tenant's sources |
+| Capability | Description |
+|------------|-------------|
+| Parse API docs | OpenAPI, Swagger, or description |
+| Generate code | Templates + LLM for custom logic |
+| Test connection | Against real API |
+| Fix errors | Diagnose and retry (up to 3x) |
+| Commit to repo | Git-native workflow |
 
-## Source Generation: Can't Fail
+### Monitoring & Healing
+| Capability | Description |
+|------------|-------------|
+| Continuous monitoring | Watch all pipeline runs |
+| Anomaly detection | Volume changes, timing shifts |
+| Auto-diagnosis | Identify root cause of failures |
+| Self-healing | Fix code, retry, redeploy |
+| Alerting | Slack, email, webhook |
 
-The agent doesn't generate code and hope it works:
+### Analytics
+| Capability | Description |
+|------------|-------------|
+| Health metrics | Success rate, run times, volumes |
+| Charts | On-demand visualization |
+| Data samples | Query recent synced data |
+| Comparisons | Week-over-week, trends |
 
-```
-parse_api_docs()
-       │
-       ▼
-   generate()
-       │
-       ▼
-   validate() ──── syntax error? ──→ fix and retry
-       │
-       ▼
-   test() ──────── API error? ────→ fix and retry (up to 3x)
-       │
-       ▼
-   save()
-```
-
-1. Generate initial code from templates + LLM
-2. Validate syntax and security
-3. Test against real API with user credentials
-4. If failure: diagnose, fix, retry
-5. Only succeed when code actually works
-
-## Implementation
-
-### File Structure
-```
-platform/
-  agent/
-    main.py                    # FastAPI SSE endpoint
-    graph.py                   # LangGraph definition
-    state.py                   # Conversation state
-    prompts.py                 # System prompts
-    tools/
-      pipelines.py
-      runs.py
-      connectors.py
-      source_generator/
-        parser.py              # OpenAPI parsing
-        generator.py           # Code generation
-        templates/             # Jinja2 templates
-        validator.py           # AST + security
-        tester.py              # Sandbox execution
-```
-
-### API Endpoints
-```
-POST   /api/agent/chat              # Send message (SSE stream)
-GET    /api/agent/sessions/{id}     # Get session history
-DELETE /api/agent/sessions/{id}     # Clear session
-```
-
-### Multi-Tenant
-```python
-@app.post("/api/agent/chat")
-async def chat(request: ChatRequest, tenant: Tenant = Depends(get_tenant)):
-    # Tools scoped to tenant's namespace
-    tools = get_tools_for_tenant(tenant.id)
-    response = await agent.run(request.message, tools=tools)
-    return StreamingResponse(response)
-```
+### Git Integration
+| Capability | Description |
+|------------|-------------|
+| Commit changes | Pipelines, sources, configs |
+| Open PRs | For review-required changes |
+| Auto-merge | Based on trust level |
+| Sync from repo | Detect external changes |
+| Collaborate | Work alongside Cursor/Copilot/humans |
 
 ## Implementation Phases
 
 ### Phase 1: Core Agent
-- [ ] LangGraph setup with ReAct pattern
-- [ ] Pipeline tools (CRUD)
-- [ ] Run tools (trigger, status, logs)
-- [ ] Connector discovery tools
-- [ ] Chat UI with SSE streaming
-- [ ] Session persistence
+- [ ] Chat interface with SSE streaming
+- [ ] Pipeline CRUD tools
+- [ ] Run management tools
+- [ ] Basic Git integration (read)
 
-### Phase 2: Source Generator
+### Phase 2: Source Generation
 - [ ] OpenAPI parser
-- [ ] Jinja2 templates (auth, pagination)
-- [ ] LLM integration for custom logic
-- [ ] Sandbox for testing
+- [ ] Code generation templates
+- [ ] Testing sandbox
 - [ ] Generate → test → fix loop
+- [ ] Git commits
 
-### Phase 3: Production
-- [ ] Multi-tenant isolation
-- [ ] Rate limiting
-- [ ] Error handling
-- [ ] Telemetry / logging
+### Phase 3: Monitoring & Healing
+- [ ] Continuous pipeline monitoring
+- [ ] Failure detection and diagnosis
+- [ ] Auto-fix with LLM
+- [ ] Trust levels and approval flows
+- [ ] Git PRs for changes
+
+### Phase 4: Analytics & Exploration
+- [ ] Health metrics queries
+- [ ] Chart generation
+- [ ] Data sampling
+- [ ] Natural language analytics
+
+### Phase 5: Full Autonomy
+- [ ] Proactive optimization suggestions
+- [ ] Cost analysis
+- [ ] Schema drift detection
+- [ ] Multi-agent collaboration protocols
+
+## OSS vs Cloud
+
+| | OSS (Self-Hosted) | Bizon Cloud |
+|---|---|---|
+| Platform | ✓ Full | ✓ Full (hosted) |
+| Git sync | ✓ | ✓ |
+| RBAC | ✓ | ✓ |
+| Custom sources | ✓ (code yourself) | ✓ (AI generates) |
+| **Bizon AI** | ✗ | ✓ |
+| Self-healing | ✗ | ✓ |
+| Conversational analytics | ✗ | ✓ |
+| Autonomous operations | ✗ | ✓ |
+
+**OSS:** You're the data engineer.
+**Cloud:** Bizon AI is your data engineer.
 
 ## Success Metrics
 
-- Time to create first pipeline (target: < 2 min)
-- Source generation success rate (target: > 90%)
-- User retention after first AI interaction
+- Time to first pipeline: < 2 min (via conversation)
+- Source generation success rate: > 90%
+- Self-healing rate: > 80% of recoverable failures
+- User trust level progression: Users increase trust over time
