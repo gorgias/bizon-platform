@@ -31,14 +31,48 @@ Bizon Cloud       → Proprietary (private)  - The hosted platform + AI
 **Effort:** High
 **Doc:** [01-ai-agent.md](./01-ai-agent.md)
 
-Conversational interface for managing all ETL pipelines. The primary differentiator.
+Bizon AI is your autonomous data engineer. It manages pipelines, generates connectors, self-heals failures, and collaborates via Git.
+
+The implementation is broken into PR-sized phases:
+
+| Phase | Doc | Effort | Description |
+|-------|-----|--------|-------------|
+| 1a | [Core Agent](./01a-core-agent.md) | ~1 week | Chat + pipeline management tools |
+| 1b | [API Doc Parsing](./01b-api-doc-parsing.md) | ~1 week | Parse OpenAPI, URL, text to structured spec |
+| 1c | [Source Generation](./01c-source-generation.md) | ~2 weeks | Templates for auth, pagination, code gen |
+| 1d | [Testing Sandbox](./01d-testing-sandbox.md) | ~1 week | Safe execution, real API testing |
+| 1e | [Secrets Management](./01e-secrets-management.md) | ~1 week | LLM-safe secrets handling, Vault support |
+| 1f | [Self-Healing](./01f-self-healing.md) | ~2 weeks | Auto-diagnose, fix, deploy failed pipelines |
+
+**Key principle: Connector done right every time**
 
 ```
-User: "Create a pipeline from Stripe to BigQuery, sync daily"
-Agent: *creates and configures the pipeline*
-
-User: "I need a connector for my CRM API"
-Agent: *generates source, tests it, saves it*
+┌─────────────────────────────────────────────────────────────┐
+│  User provides API docs                                     │
+└─────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Parse docs (OpenAPI = deterministic, else LLM)             │
+│  → Confirm with user if ambiguous                           │
+└─────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Generate code (80% templates, 20% LLM)                     │
+│  → Battle-tested auth/pagination patterns                   │
+└─────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Test in sandbox (real API, secrets never exposed to LLM)   │
+│  → Generate → Test → Fix → Repeat until success             │
+└─────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Working connector                                          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Webhook Triggers

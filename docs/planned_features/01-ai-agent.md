@@ -6,11 +6,146 @@
 
 ## Vision
 
-Bizon AI is an autonomous data engineer that manages your entire data pipeline infrastructure. It doesn't just help you build pipelines—it operates them, monitors them, heals them, and collaborates with you and other AI agents through code.
+Bizon AI is an autonomous data engineer that manages your entire data pipeline infrastructure. It doesn't just help you build pipelines - it operates them, monitors them, heals them, and collaborates with you and other AI agents through code.
 
 **Your repo is the shared codebase. Bizon AI is a team member.**
 
-## Core Concept
+## Implementation Phases
+
+| Phase | Doc | Effort | Description |
+|-------|-----|--------|-------------|
+| 1a | [Core Agent](./01a-core-agent.md) | ~1 week | Chat UI + pipeline management tools |
+| 1b | [API Doc Parsing](./01b-api-doc-parsing.md) | ~1 week | Parse OpenAPI, URL, text → structured APISpec |
+| 1c | [Source Generation](./01c-source-generation.md) | ~2 weeks | Templates for auth, pagination, code gen |
+| 1d | [Testing Sandbox](./01d-testing-sandbox.md) | ~1 week | Safe execution, real API testing |
+| 1e | [Secrets Management](./01e-secrets-management.md) | ~1 week | LLM-safe secrets, Vault/AWS integration |
+| 1f | [Self-Healing](./01f-self-healing.md) | ~2 weeks | Auto-diagnose, fix, deploy failed pipelines |
+
+## Core Principle: Connector Done Right Every Time
+
+The AI doesn't guess and hope. It follows a rigorous process:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. PARSE                                                   │
+│                                                             │
+│  OpenAPI spec? → Deterministic parsing (no LLM needed)      │
+│  URL/HTML?     → Fetch + LLM extraction                     │
+│  Plain text?   → LLM extraction + human confirmation        │
+│                                                             │
+│  Output: Structured APISpec (endpoints, auth, pagination)   │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  2. CONFIRM                                                 │
+│                                                             │
+│  "I found these endpoints. Which do you need?"              │
+│  "Auth looks like API key in header. Correct?"              │
+│  "Pagination is cursor-based. Is that right?"               │
+│                                                             │
+│  Never assume when ambiguous - always ask                   │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  3. GENERATE                                                │
+│                                                             │
+│  80% templates (battle-tested auth/pagination patterns)     │
+│  20% LLM (response parsing, edge cases)                     │
+│                                                             │
+│  Templates handle the hard parts. LLM fills gaps.           │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  4. TEST                                                    │
+│                                                             │
+│  Level 1: Syntax check (AST)                                │
+│  Level 2: Import check (allowlist)                          │
+│  Level 3: Instantiate (no API)                              │
+│  Level 4: Connection test (real API)                        │
+│  Level 5: Fetch test (real data)                            │
+│                                                             │
+│  Secrets NEVER exposed to LLM - injected at runtime only    │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                    Pass? ──────────────────┐
+                         │                  │
+                    No   ▼                  │
+┌─────────────────────────────────────────┐ │
+│  5. FIX                                 │ │
+│                                         │ │
+│  Diagnose error (rule-based + LLM)      │ │
+│  Apply targeted fix                     │ │
+│  Re-test                                │ │
+│  Repeat up to 3x                        │ │
+└─────────────────────────────────────────┘ │
+                         │                  │
+                         └──────────────────┘
+                                            │
+                                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  WORKING CONNECTOR                                          │
+│                                                             │
+│  Guaranteed to:                                             │
+│  - Authenticate correctly                                   │
+│  - Handle pagination                                        │
+│  - Fetch real records                                       │
+│  - Handle rate limits                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Secrets: LLM Never Sees Them
+
+Enterprise customers have strict security policies. Our architecture ensures:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  What LLM sees:                                             │
+│                                                             │
+│  api_key: ${SECRETS.stripe_key}   ← Reference, not value    │
+│                                                             │
+│  Test result: "✓ Connected"       ← Outcome, not secrets    │
+│  Test result: "401 Unauthorized"  ← Error, secrets redacted │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  What LLM NEVER sees:                                       │
+│                                                             │
+│  ✗ sk_live_4eC39HqLyjWDarjtT1zdp7dc                         │
+│  ✗ Any actual credential value                              │
+│  ✗ Secrets in error messages                                │
+└─────────────────────────────────────────────────────────────┘
+
+Storage options:
+- Encrypted Postgres (default)
+- HashiCorp Vault (enterprise)
+- AWS Secrets Manager (enterprise)
+```
+
+## Self-Healing: Recovers at 3am
+
+```
+3:00 AM  Pipeline fails (rate limit exceeded)
+3:01 AM  AI diagnoses: "API rate limit hit"
+3:02 AM  AI generates fix: add exponential backoff
+3:03 AM  AI tests fix: ✓ works
+3:04 AM  AI deploys (based on trust level)
+3:05 AM  Pipeline recovers
+
+9:00 AM  Engineer sees: "Auto-recovered" status
+```
+
+**Trust Levels:**
+
+| Level | Name | Behavior |
+|-------|------|----------|
+| 1 | Suggest | Opens PR, waits for approval |
+| 2 | Assist | Auto-deploys, notifies human |
+| 3 | Autonomous | Auto-deploys, logs only |
+
+## Git as Collaboration Layer
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -18,282 +153,73 @@ Bizon AI is an autonomous data engineer that manages your entire data pipeline i
 │                                                             │
 │  pipelines/                                                 │
 │    stripe-to-bigquery.yaml                                  │
-│    hubspot-sync.yaml                                        │
 │  sources/                                                   │
 │    my-crm/source.py                                         │
-│  destinations/                                              │
-│    custom-warehouse/destination.py                          │
 │  bizon.yaml                                                 │
 └─────────────────────────────────────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-   ┌───────────┐   ┌───────────┐   ┌───────────┐
-   │  Bizon AI │   │  Cursor/  │   │  Human    │
-   │           │   │  Copilot  │   │  Engineer │
-   └───────────┘   └───────────┘   └───────────┘
+         ▲               ▲               ▲
          │               │               │
-         └───────commit/PR───────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Bizon Platform                                             │
-│  - Syncs from repo                                          │
-│  - Executes pipelines                                       │
-│  - Reports metrics back                                     │
-└─────────────────────────────────────────────────────────────┘
+   ┌───────────┐   ┌───────────┐   ┌───────────┐
+   │  Bizon AI │   │  Cursor   │   │  Human    │
+   └───────────┘   └───────────┘   └───────────┘
+
+All agents commit to the same repo.
+Bizon AI is just another team member.
 ```
 
 ## What Bizon AI Does
 
-### 1. Pipeline Management (Conversational)
-
+### Pipeline Management
 ```
-User: Create a pipeline to sync Stripe customers to BigQuery daily
+User: Create a pipeline from Stripe to BigQuery, daily at 2am
 
-Bizon AI: I'll set that up.
-
-          Created: pipelines/stripe-customers-to-bq.yaml
-          Schedule: Daily at 2:00 AM UTC
-
-          [View commit] [Run now]
+AI: Done. Created stripe-to-bq pipeline.
+    First run scheduled for 2:00 AM UTC.
 ```
 
-### 2. Source Generation (Autonomous)
-
+### Source Generation
 ```
-User: I need a connector for our internal CRM API
+User: I need a connector for my CRM API
 
-Bizon AI: I'll generate that. Can you share the API docs?
+AI: I'll generate that. Share your API docs?
 
 User: [pastes OpenAPI spec]
 
-Bizon AI: Generated sources/internal-crm/source.py
-
-          Testing... ✓ Connected, fetched 3 sample records.
-
-          [View commit] [Create pipeline with this source]
+AI: Testing... ✓ Connected. Fetched 3 sample customers.
+    Source saved to sources/my-crm/source.py
 ```
 
-### 3. Self-Healing (Proactive)
-
+### Self-Healing
 ```
-Bizon AI: ⚠️ Pipeline "hubspot-sync" failed at 3:42 AM
+AI: Pipeline "hubspot-sync" failed at 3:42 AM.
+    Error: API rate limit exceeded.
 
-          Error: API rate limit exceeded
+    I've fixed this by adding backoff.
+    [Auto-deployed based on trust level]
 
-          I've fixed this by adding exponential backoff.
-
-          [View PR] [Auto-merged based on trust level]
-
-          Pipeline recovered. Next run succeeded.
+    Next run succeeded.
 ```
 
-### 4. Health Metrics (On-Demand)
-
+### Health Metrics
 ```
-User: How are my pipelines doing this week?
+User: How are my pipelines doing?
 
-Bizon AI: Here's your weekly summary:
-
-          ✓ 142 successful runs
-          ✗ 3 failures (all auto-recovered)
-          📊 2.4M records synced
-          ⏱️ Avg run time: 45s
-
-          [chart: runs over time]
-
-          Notable: stripe-to-bq volume up 30% vs last week.
+AI: This week:
+    ✓ 142 runs succeeded
+    ✗ 3 failures (all auto-recovered)
+    📊 2.4M records synced
 ```
-
-### 5. Data Exploration (Conversational)
-
-```
-User: Show me recent customers from the CRM sync
-
-Bizon AI: Here are the last 10 customers synced:
-
-          | id  | name        | created_at |
-          |-----|-------------|------------|
-          | 142 | Acme Corp   | 2024-01-20 |
-          | 141 | Globex Inc  | 2024-01-19 |
-          ...
-
-          Total: 1,247 customers synced this month.
-```
-
-### 6. Collaboration (Git-Native)
-
-```
-Human commits sources/new-api/source.py via Cursor
-
-Bizon AI: I noticed a new source was added.
-
-          I've validated it and created a draft pipeline:
-          pipelines/new-api-to-warehouse.yaml
-
-          [View PR] [Approve and deploy]
-```
-
-## Trust Levels
-
-Users configure how autonomous Bizon AI should be:
-
-| Level | Name | Behavior |
-|-------|------|----------|
-| 1 | **Suggest** | Opens PRs, waits for human approval |
-| 2 | **Assist** | Auto-commits non-destructive changes, PRs for destructive |
-| 3 | **Autonomous** | Full self-healing, auto-deploys, alerts on major changes |
-
-```yaml
-# bizon.yaml
-ai:
-  trust_level: 2  # assist
-  auto_heal: true
-  require_approval_for:
-    - delete_pipeline
-    - modify_destination
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Bizon Cloud                                                │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  AI Agent Service                                     │  │
-│  │                                                       │  │
-│  │  - Conversational interface (chat)                    │  │
-│  │  - Source generation (templates + LLM)                │  │
-│  │  - Pipeline monitoring (continuous)                   │  │
-│  │  - Self-healing (diagnose + fix + deploy)             │  │
-│  │  - Git integration (commit, PR, merge)                │  │
-│  │  - Analytics (metrics, charts, samples)               │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                         │                                    │
-│                         ▼                                    │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  Platform (per tenant)                                │  │
-│  │                                                       │  │
-│  │  - Pipeline execution                                 │  │
-│  │  - Scheduling                                         │  │
-│  │  - Run history + logs                                 │  │
-│  │  - Git sync                                           │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                         │                                    │
-│                         ▼                                    │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  Customer's Git Repo                                  │  │
-│  │                                                       │  │
-│  │  - Pipelines as code                                  │  │
-│  │  - Sources as code                                    │  │
-│  │  - Bizon AI commits here                              │  │
-│  │  - Other agents (Cursor) commit here                  │  │
-│  │  - Humans commit here                                 │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Capabilities
-
-### Pipeline Operations
-| Capability | Description |
-|------------|-------------|
-| Create pipeline | From conversation or API docs |
-| Modify pipeline | Schedule, config, source/destination |
-| Delete pipeline | With confirmation based on trust level |
-| Trigger run | On-demand execution |
-| View history | Run logs, status, metrics |
-
-### Source Generation
-| Capability | Description |
-|------------|-------------|
-| Parse API docs | OpenAPI, Swagger, or description |
-| Generate code | Templates + LLM for custom logic |
-| Test connection | Against real API |
-| Fix errors | Diagnose and retry (up to 3x) |
-| Commit to repo | Git-native workflow |
-
-### Monitoring & Healing
-| Capability | Description |
-|------------|-------------|
-| Continuous monitoring | Watch all pipeline runs |
-| Anomaly detection | Volume changes, timing shifts |
-| Auto-diagnosis | Identify root cause of failures |
-| Self-healing | Fix code, retry, redeploy |
-| Alerting | Slack, email, webhook |
-
-### Analytics
-| Capability | Description |
-|------------|-------------|
-| Health metrics | Success rate, run times, volumes |
-| Charts | On-demand visualization |
-| Data samples | Query recent synced data |
-| Comparisons | Week-over-week, trends |
-
-### Git Integration
-| Capability | Description |
-|------------|-------------|
-| Commit changes | Pipelines, sources, configs |
-| Open PRs | For review-required changes |
-| Auto-merge | Based on trust level |
-| Sync from repo | Detect external changes |
-| Collaborate | Work alongside Cursor/Copilot/humans |
-
-## Implementation Phases
-
-### Phase 1: Core Agent
-- [ ] Chat interface with SSE streaming
-- [ ] Pipeline CRUD tools
-- [ ] Run management tools
-- [ ] Basic Git integration (read)
-
-### Phase 2: Source Generation
-- [ ] OpenAPI parser
-- [ ] Code generation templates
-- [ ] Testing sandbox
-- [ ] Generate → test → fix loop
-- [ ] Git commits
-
-### Phase 3: Monitoring & Healing
-- [ ] Continuous pipeline monitoring
-- [ ] Failure detection and diagnosis
-- [ ] Auto-fix with LLM
-- [ ] Trust levels and approval flows
-- [ ] Git PRs for changes
-
-### Phase 4: Analytics & Exploration
-- [ ] Health metrics queries
-- [ ] Chart generation
-- [ ] Data sampling
-- [ ] Natural language analytics
-
-### Phase 5: Full Autonomy
-- [ ] Proactive optimization suggestions
-- [ ] Cost analysis
-- [ ] Schema drift detection
-- [ ] Multi-agent collaboration protocols
 
 ## OSS vs Cloud
 
 | | OSS (Self-Hosted) | Bizon Cloud |
 |---|---|---|
-| Platform | ✓ Full | ✓ Full (hosted) |
+| Platform | ✓ | ✓ (hosted) |
 | Git sync | ✓ | ✓ |
-| RBAC | ✓ | ✓ |
 | Custom sources | ✓ (code yourself) | ✓ (AI generates) |
 | **Bizon AI** | ✗ | ✓ |
 | Self-healing | ✗ | ✓ |
-| Conversational analytics | ✗ | ✓ |
-| Autonomous operations | ✗ | ✓ |
+| Autonomous ops | ✗ | ✓ |
 
 **OSS:** You're the data engineer.
 **Cloud:** Bizon AI is your data engineer.
-
-## Success Metrics
-
-- Time to first pipeline: < 2 min (via conversation)
-- Source generation success rate: > 90%
-- Self-healing rate: > 80% of recoverable failures
-- User trust level progression: Users increase trust over time
