@@ -6,29 +6,45 @@ This document outlines the roadmap for Bizon. Features are organized by priority
 
 | Priority | Feature | Effort | Status |
 |----------|---------|--------|--------|
-| P0 | [AI Agent](#ai-agent) | Medium | Planned |
+| P0 | [AI Agent Core](#ai-agent-core) | Medium | Planned |
+| P0 | [AI Agent Source Generator](#ai-agent-source-generator) | High | Planned |
 | P0 | [Webhook Triggers](#webhook-triggers) | Low | Planned |
 | P1 | [Pipeline Templates](#pipeline-templates) | Low | Planned |
 | P1 | [Observability Dashboard](#observability-dashboard) | Medium | Planned |
 | P2 | [CLI Tool](#cli-tool) | Medium | Planned |
 | P2 | [GitHub Sync](#github-sync) | Medium | **Implemented** |
+| P2 | [AI Agent Monetization](#ai-agent-monetization) | Medium | Planned |
 | P3 | [Connector Marketplace](#connector-marketplace) | High | Future |
 
 ---
 
 ## P0 - Critical Path
 
-### AI Agent
+### AI Agent Core
 
 **Status:** Planned
-**Effort:** Medium (port from main platform)
-**Doc:** [01-ai-agent.md](./01-ai-agent.md)
+**Effort:** Medium
+**Doc:** [01a-ai-agent-core.md](./01a-ai-agent-core.md)
 
-Conversational pipeline creation powered by LLM. The killer feature that differentiates Bizon from every other ETL tool.
+Conversational pipeline creation powered by LLM. Chat interface with tools for managing pipelines, runs, and connectors.
 
 ```
 User: "Create a pipeline from Stripe to BigQuery, sync customers daily"
 Agent: *creates and configures the pipeline*
+```
+
+### AI Agent Source Generator
+
+**Status:** Planned
+**Effort:** High
+**Doc:** [01b-ai-agent-source-generator.md](./01b-ai-agent-source-generator.md)
+**Depends on:** AI Agent Core
+
+Generate custom source connectors from API documentation. Parse OpenAPI specs, generate code, test against real APIs, fix and retry until working.
+
+```
+User: "I need a connector for my CRM API"
+Agent: *parses docs, generates source, tests, saves to custom_sources/*
 ```
 
 ### Webhook Triggers
@@ -107,6 +123,16 @@ pipelines/
 ├── hubspot-to-snowflake.yaml
 └── daily-reports.yaml
 ```
+
+### AI Agent Monetization
+
+**Status:** Planned
+**Effort:** Medium
+**Doc:** [01c-ai-agent-monetization.md](./01c-ai-agent-monetization.md)
+**Depends on:** AI Agent Source Generator
+**Optional:** Yes
+
+Extract source generator as a paid multi-tenant service. Platform calls external API, enabling monetization while keeping platform OSS.
 
 ---
 
