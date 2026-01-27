@@ -32,7 +32,7 @@ When this skill is invoked, follow these steps:
       "question": "What authentication method does the API use?",
       "header": "Auth",
       "options": [
-        {"label": "API Key", "description": "Token passed in header (most common)"},
+        {"label": "API Key (Header)", "description": "Token passed in a custom header (e.g., X-Api-Key)"},
         {"label": "Bearer Token", "description": "OAuth2 bearer token in Authorization header"},
         {"label": "Basic Auth", "description": "Username and password"},
         {"label": "No Auth", "description": "Public API, no authentication needed"}
@@ -70,23 +70,6 @@ When this skill is invoked, follow these steps:
 }
 ```
 
-**If auth requires secrets, ask:**
-```json
-{
-  "questions": [
-    {
-      "question": "Do you have test API credentials to verify the source works?",
-      "header": "Test creds",
-      "options": [
-        {"label": "Yes, I'll provide", "description": "I have API key/token for testing"},
-        {"label": "Skip testing", "description": "Create source without live testing"}
-      ],
-      "multiSelect": false
-    }
-  ]
-}
-```
-
 ### 2. Create Source Directory
 ```bash
 mkdir -p custom_sources/{source_name}
@@ -104,17 +87,20 @@ Fetches data from {API description}.
 """
 
 from typing import List, Tuple
-from requests.auth import AuthBase
+
+import requests
 from bizon.source.config import SourceConfig
 from bizon.source.models import SourceIteration, SourceRecord
 from bizon.source.source import AbstractSource
+from requests.auth import AuthBase
 
 BASE_URL = "{api_base_url}"
 
 
 class {SourceName}SourceConfig(SourceConfig):
     """Configuration for {source_name} source."""
-    pass  # Add custom fields if needed
+    # Add config fields for secrets - user provides via env vars
+    api_key: str  # Set via ${SOURCE_NAME_API_KEY}
 
 
 class {SourceName}Source(AbstractSource):
@@ -159,27 +145,22 @@ def get_authenticator(self) -> AuthBase | None:
     return None
 ```
 
-**API Key (Header):**
+**API Key (Custom Header):**
 ```python
-from bizon.source.auth.builder import AuthBuilder
-from bizon.source.auth.authenticators.token import TokenAuthParams
-
-def get_authenticator(self) -> AuthBase:
-    return AuthBuilder.token(
-        params=TokenAuthParams(token=self.config.authentication.params.token)
-    )
+def _get_headers(self) -> dict:
+    return {
+        "Content-Type": "application/json",
+        "X-Api-Key": self.config.api_key,
+    }
 ```
 
 **Bearer Token:**
 ```python
-def get_authenticator(self) -> AuthBase:
-    class BearerAuth(AuthBase):
-        def __init__(self, token):
-            self.token = token
-        def __call__(self, r):
-            r.headers["Authorization"] = f"Bearer {self.token}"
-            return r
-    return BearerAuth(self.config.authentication.params.token)
+def _get_headers(self) -> dict:
+    return {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {self.config.api_key}",
+    }
 ```
 
 ### 5. Pagination Patterns
@@ -188,9 +169,9 @@ def get_authenticator(self) -> AuthBase:
 ```python
 def get(self, pagination: dict = None) -> SourceIteration:
     if pagination and pagination.get("done"):
-        return SourceIteration(next_pagination={}, records=[])
+        return SourceIteration(next_pagination=None, records=[])
 
-    response = self.session.get(f"{BASE_URL}/{self.config.stream}")
+    response = requests.get(f"{BASE_URL}/{self.config.stream}", headers=self._get_headers())
     data = response.json()
 
     records = [
@@ -204,13 +185,11 @@ def get(self, pagination: dict = None) -> SourceIteration:
 **Cursor Pagination:**
 ```python
 def get(self, pagination: dict = None) -> SourceIteration:
-    url = f"{BASE_URL}/{self.config.stream}"
     params = {}
-
     if pagination and pagination.get("cursor"):
         params["cursor"] = pagination["cursor"]
 
-    response = self.session.get(url, params=params)
+    response = requests.get(f"{BASE_URL}/{self.config.stream}", params=params, headers=self._get_headers())
     data = response.json()
 
     next_cursor = data.get("next_cursor")
@@ -220,9 +199,35 @@ def get(self, pagination: dict = None) -> SourceIteration:
     ]
 
     return SourceIteration(
-        next_pagination={"cursor": next_cursor} if next_cursor else {},
+        next_pagination={"cursor": next_cursor} if next_cursor else None,
         records=records,
     )
+```
+
+**Offset/Limit Pagination:**
+```python
+PAGE_SIZE = 100
+
+def get(self, pagination: dict = None) -> SourceIteration:
+    offset = pagination.get("offset", 0) if pagination else 0
+
+    response = requests.get(
+        f"{BASE_URL}/{self.config.stream}",
+        params={"offset": offset, "limit": self.PAGE_SIZE},
+        headers=self._get_headers()
+    )
+    data = response.json()
+
+    records = [
+        SourceRecord(id=str(item["id"]), data=item)
+        for item in data["items"]
+    ]
+
+    next_pagination = None
+    if len(data["items"]) == self.PAGE_SIZE:
+        next_pagination = {"offset": offset + self.PAGE_SIZE}
+
+    return SourceIteration(next_pagination=next_pagination, records=records)
 ```
 
 **Page Number Pagination:**
@@ -230,9 +235,10 @@ def get(self, pagination: dict = None) -> SourceIteration:
 def get(self, pagination: dict = None) -> SourceIteration:
     page = pagination.get("page", 1) if pagination else 1
 
-    response = self.session.get(
+    response = requests.get(
         f"{BASE_URL}/{self.config.stream}",
-        params={"page": page, "per_page": 100}
+        params={"page": page, "per_page": 100},
+        headers=self._get_headers()
     )
     data = response.json()
 
@@ -243,14 +249,14 @@ def get(self, pagination: dict = None) -> SourceIteration:
     ]
 
     return SourceIteration(
-        next_pagination={"page": page + 1} if has_more else {},
+        next_pagination={"page": page + 1} if has_more else None,
         records=records,
     )
 ```
 
-### 6. Test the Source
+### 6. Test the Source (Discovery Only)
 
-**IMPORTANT**: Always run this test after creating a source:
+**IMPORTANT**: First verify the source can be discovered:
 
 ```bash
 uv run python -c "
@@ -261,22 +267,33 @@ source_class = get_external_source_class_by_source_and_stream(
     stream_name='{first_stream}',
     filepath='custom_sources/{source_name}/source.py'
 )
-print(f'✓ Streams: {source_class.streams()}')
-
-config = source_class.get_config_class()(name='{source_name}', stream='{first_stream}')
-source = source_class(config=config)
-
-success, error = source.check_connection()
-print(f'✓ Connection: {\"OK\" if success else error}')
-
-result = source.get()
-print(f'✓ Records: {len(result.records)}')
-if result.records:
-    print(f'✓ Sample: {result.records[0].data}')
+print(f'Streams: {source_class.streams()}')
+print(f'Config fields: {list(source_class.get_config_class().model_fields.keys())}')
 "
 ```
 
-### 7. Sample Pipeline Config
+### 7. Secrets Handling
+
+**CRITICAL: Never ask for actual secret values. Only provide instructions for adding to .env file.**
+
+After creating the source, tell the user:
+
+```
+To test the source with your API key:
+
+1. Add your API key to .env:
+   echo '{SOURCE_NAME_UPPER}_API_KEY=your_api_key_here' >> .env
+
+2. Test discovery (no API key needed):
+   uv run python scripts/test_source.py {source_name} {first_stream}
+
+3. Test with API connection:
+   uv run python scripts/test_source.py {source_name} {first_stream} --fetch
+```
+
+The test script automatically loads `.env` and maps config fields to environment variables.
+
+### 8. Sample Pipeline Config
 
 ```json
 {
@@ -284,7 +301,10 @@ if result.records:
   "source": {
     "source_file_path": "/custom_sources/{source_name}/source.py",
     "name": "{source_name}",
-    "stream": "{first_stream}"
+    "stream": "{first_stream}",
+    "config": {
+      "api_key": "${SOURCE_NAME_UPPER}_API_KEY}"
+    }
   },
   "destination": {
     "name": "logger",
@@ -293,12 +313,13 @@ if result.records:
 }
 ```
 
-### 8. Output
+### 9. Output
 
 After creating the source:
-1. Run the test script above
-2. If it passes, tell the user:
+1. Run the discovery test to verify the source loads
+2. Tell the user:
    - The file path created
-   - The test results
-   - A sample pipeline config
-3. If it fails, debug and fix the issue
+   - How to set their API key as an environment variable
+   - How to test the connection (after they set the env var)
+   - A sample pipeline config with `${SECRET_NAME}` reference
+3. **NEVER** ask for or log actual secret values

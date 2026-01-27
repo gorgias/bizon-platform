@@ -13,7 +13,53 @@ Handle API credentials securely so that:
 4. Audit trail for secret access
 5. Enterprise customers can use their own vaults
 
-## The Problem
+## Interim Solution (Available Now)
+
+Before the full secrets management system is built, we use **environment variables** with a consistent convention:
+
+### Convention
+
+- Secret references use `${SECRET_NAME}` syntax in pipeline configs
+- Environment variables follow `{SOURCE_NAME_UPPER}_API_KEY` pattern
+- Claude never asks for or handles actual secret values
+
+### Current Workflow
+
+```bash
+# User sets environment variable (Claude never sees this)
+export STRIPE_API_KEY="sk_live_xxxxx"
+
+# Pipeline config references the secret
+{
+  "source": {
+    "config": {
+      "api_key": "${STRIPE_API_KEY}"
+    }
+  }
+}
+
+# At runtime, the worker resolves ${STRIPE_API_KEY} from environment
+```
+
+### Claude Code Guidelines
+
+When creating sources, Claude should:
+1. Define config fields like `api_key: str`
+2. Tell user to set environment variable: `export SOURCE_API_KEY=...`
+3. Provide test command that reads from `os.environ`
+4. **NEVER** ask user to paste secrets in chat
+5. **NEVER** log or display secret values
+
+This interim approach:
+- Works immediately without infrastructure changes
+- Follows the same `${SECRET_NAME}` syntax as the planned solution
+- Keeps secrets out of Claude's context
+
+---
+
+## Full Solution (Planned)
+
+### The Problem
 
 Many companies have strict security policies:
 

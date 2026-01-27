@@ -115,6 +115,79 @@ class MySource(AbstractSource):
 
 Run `bizon source list` or check the API at `/api/connectors/sources` to see all available sources.
 
+## Secrets Management
+
+**CRITICAL: Never handle or ask for actual secret values.** Only work with secret references.
+
+### Convention
+
+Secrets are referenced using `${SECRET_NAME}` syntax in pipeline configs. The actual values are resolved at runtime from environment variables.
+
+```json
+{
+  "source": {
+    "config": {
+      "api_key": "${STRIPE_API_KEY}"
+    }
+  }
+}
+```
+
+### Using .env File
+
+Secrets are stored in a `.env` file (gitignored) and auto-loaded:
+
+```bash
+# Copy the example and add your secrets
+cp .env.example .env
+
+# Add your API key to .env
+echo "BUILDBETTER_API_KEY=your_key_here" >> .env
+```
+
+### Testing Sources with Secrets
+
+Use the test script which auto-loads `.env`:
+
+```bash
+# Discovery test only (no API key needed)
+uv run python scripts/test_source.py buildbetter signals
+
+# Full test with API connection (requires API key in .env)
+uv run python scripts/test_source.py buildbetter signals --fetch
+```
+
+The script automatically:
+- Loads `.env` file
+- Maps config fields to environment variables (e.g., `api_key` → `BUILDBETTER_API_KEY`)
+- Tests discovery, connection, and fetching
+
+### When Creating Custom Sources
+
+1. **Config fields**: Define fields like `api_key: str` in the config class
+2. **Pipeline config**: Always use `${SECRET_NAME}` references
+3. **Testing**: Tell user to add secret to `.env`, then run test script
+
+### Example Workflow
+
+```
+User: "Create a source for the Acme API"
+
+Claude: Creates source with `api_key: str` in config
+Claude: "Add your API key to .env:"
+Claude: "echo 'ACME_API_KEY=your_key' >> .env"
+Claude: "Then test with: uv run python scripts/test_source.py acme stream --fetch"
+
+User: "Done, it works!"
+```
+
+### What Claude Should NEVER Do
+
+- Ask users to paste API keys in chat
+- Log or display secret values
+- Include actual secrets in code or configs
+- Guess or generate fake secret values
+
 ## Testing
 
 ```bash
