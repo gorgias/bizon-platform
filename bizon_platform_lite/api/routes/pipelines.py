@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from croniter import croniter
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
@@ -24,6 +25,22 @@ from bizon_platform_lite.settings import settings
 from bizon_platform_lite.storage.logs import read_full_logs
 
 router = APIRouter(prefix="/pipelines", tags=["pipelines"])
+
+
+def validate_schedule(schedule: Optional[str]) -> None:
+    """Validate cron schedule syntax.
+
+    Raises HTTPException with 400 status if schedule is invalid.
+    """
+    if not schedule:
+        return
+    try:
+        croniter(schedule)
+    except (ValueError, KeyError) as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid cron schedule '{schedule}': {str(e)}",
+        )
 
 
 def validate_bizon_config(config: dict[str, Any]) -> None:
@@ -59,6 +76,7 @@ def validate_bizon_config(config: dict[str, Any]) -> None:
 @router.post("", response_model=PipelineResponse, status_code=201)
 async def create_pipeline(data: PipelineCreate) -> Pipeline:
     """Create a new pipeline."""
+    validate_schedule(data.schedule)
     validate_bizon_config(data.config)
 
     async with get_session() as session:
@@ -129,6 +147,8 @@ async def get_pipeline(pipeline_id: uuid.UUID) -> Pipeline:
 @router.put("/{pipeline_id}", response_model=PipelineResponse)
 async def update_pipeline(pipeline_id: uuid.UUID, data: PipelineUpdate) -> Pipeline:
     """Update a pipeline."""
+    if data.schedule is not None:
+        validate_schedule(data.schedule)
     if data.config is not None:
         validate_bizon_config(data.config)
 

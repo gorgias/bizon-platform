@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { pipelinesApi } from '../api'
+import { ApiError } from '../api/client'
+import { useToast } from '../contexts/ToastContext'
 import type { CreatePipelineRequest, UpdatePipelineRequest, TriggerRunRequest } from '../api'
 
 const QUERY_KEYS = {
@@ -37,18 +39,24 @@ export function usePipeline(id: string) {
 
 export function useCreatePipeline() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   return useMutation({
     mutationFn: (data: CreatePipelineRequest) => pipelinesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pipelines })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tags })
+      addToast({ type: 'success', message: 'Pipeline created successfully' })
+    },
+    onError: (error: ApiError) => {
+      addToast({ type: 'error', message: error.detail || error.message || 'Failed to create pipeline' })
     },
   })
 }
 
 export function useUpdatePipeline() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdatePipelineRequest }) =>
@@ -57,52 +65,82 @@ export function useUpdatePipeline() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pipelines })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pipeline(id) })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tags })
+      addToast({ type: 'success', message: 'Pipeline updated successfully' })
+    },
+    onError: (error: ApiError) => {
+      addToast({ type: 'error', message: error.detail || error.message || 'Failed to update pipeline' })
     },
   })
 }
 
 export function useDeletePipeline() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   return useMutation({
     mutationFn: (id: string) => pipelinesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pipelines })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tags })
+      addToast({ type: 'success', message: 'Pipeline deleted' })
+    },
+    onError: (error: ApiError) => {
+      addToast({ type: 'error', message: error.detail || error.message || 'Failed to delete pipeline' })
     },
   })
 }
 
 export function useDuplicatePipeline() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   return useMutation({
     mutationFn: (id: string) => pipelinesApi.duplicate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pipelines })
+      addToast({ type: 'success', message: 'Pipeline duplicated' })
+    },
+    onError: (error: ApiError) => {
+      addToast({ type: 'error', message: error.detail || error.message || 'Failed to duplicate pipeline' })
     },
   })
 }
 
 export function useSyncOtherStreams() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   return useMutation({
     mutationFn: (id: string) => pipelinesApi.syncStreams(id),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pipelines })
+      const count = Array.isArray(result) ? result.length : 0
+      addToast({
+        type: 'success',
+        message: count > 0
+          ? `Created ${count} pipeline${count > 1 ? 's' : ''} for other streams`
+          : 'All streams already have pipelines',
+      })
+    },
+    onError: (error: ApiError) => {
+      addToast({ type: 'error', message: error.detail || error.message || 'Failed to sync streams' })
     },
   })
 }
 
 export function useTriggerRun() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data?: TriggerRunRequest }) =>
       pipelinesApi.triggerRun(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.runs(id) })
+      addToast({ type: 'success', message: 'Pipeline run triggered' })
+    },
+    onError: (error: ApiError) => {
+      addToast({ type: 'error', message: error.detail || error.message || 'Failed to trigger run' })
     },
   })
 }
@@ -163,11 +201,16 @@ export function useRunLogs(runId: string, isActive: boolean) {
 
 export function useCancelRun() {
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   return useMutation({
     mutationFn: (runId: string) => pipelinesApi.cancelRun(runId),
     onSuccess: (_, runId) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.run(runId) })
+      addToast({ type: 'info', message: 'Run cancelled' })
+    },
+    onError: (error: ApiError) => {
+      addToast({ type: 'error', message: error.detail || error.message || 'Failed to cancel run' })
     },
   })
 }

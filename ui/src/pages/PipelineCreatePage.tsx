@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button, Card, CardHeader, CardTitle, CardContent, TagInput, PageLoader } from '../components/ui'
+import { DestinationConfigForm, isDestinationConfigValid } from '../components/DestinationConfigForm'
+import { useToast } from '../contexts/ToastContext'
+import { validateCron } from '../utils/cron'
 import {
   useCreatePipeline,
   useUpdatePipeline,
@@ -35,6 +38,7 @@ interface FormData {
   customSourceStream: string
   customSourceFilePath: string
   destinationName: string
+  destinationConfig: Record<string, unknown>
   schedulePreset: string
   scheduleCustom: string
   enabled: boolean
@@ -50,6 +54,7 @@ const initialFormData: FormData = {
   customSourceStream: '',
   customSourceFilePath: '',
   destinationName: '',
+  destinationConfig: {},
   schedulePreset: '',
   scheduleCustom: '',
   enabled: true,
@@ -60,6 +65,7 @@ export function PipelineCreatePage() {
   const { id } = useParams<{ id: string }>()
   const isEditMode = !!id
   const navigate = useNavigate()
+  const { addToast } = useToast()
   const createPipeline = useCreatePipeline()
   const updatePipeline = useUpdatePipeline()
   const { data: pipeline, isLoading: isPipelineLoading } = usePipeline(id || '')
@@ -70,6 +76,7 @@ export function PipelineCreatePage() {
 
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [isInitialized, setIsInitialized] = useState(!isEditMode)
+  const [cronError, setCronError] = useState<string | null>(null)
 
   // Populate form when editing
   useEffect(() => {
@@ -93,6 +100,7 @@ export function PipelineCreatePage() {
         customSourceStream: isCustomSource ? (sourceConfig.stream || '') : '',
         customSourceFilePath: sourceConfig.source_file_path || '',
         destinationName: config.destination?.name || '',
+        destinationConfig: config.destination?.config || {},
         schedulePreset,
         scheduleCustom,
         enabled: pipeline.enabled,
@@ -107,6 +115,18 @@ export function PipelineCreatePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate cron expression
+    if (cronError) {
+      addToast({ type: 'error', message: 'Please fix the schedule before saving' })
+      return
+    }
+
+    // Validate destination config
+    if (formData.destinationName && !isDestinationConfigValid(formData.destinationName, formData.destinationConfig)) {
+      addToast({ type: 'error', message: 'Please fill in all required destination fields' })
+      return
+    }
 
     const isCustom = formData.sourceType === 'custom'
     const schedule = formData.schedulePreset === 'custom'
@@ -133,7 +153,7 @@ export function PipelineCreatePage() {
             },
         destination: {
           name: formData.destinationName,
-          config: {},
+          config: formData.destinationConfig,
         },
       },
       schedule: schedule || undefined,
@@ -150,7 +170,7 @@ export function PipelineCreatePage() {
         navigate('/pipelines')
       }
     } catch (error) {
-      console.error(`Failed to ${isEditMode ? 'update' : 'create'} pipeline:`, error)
+      // Error already handled by mutation's onError
     }
   }
 
@@ -366,7 +386,11 @@ export function PipelineCreatePage() {
               <label className="block text-sm font-medium text-bizon-text mb-1">Destination</label>
               <select
                 value={formData.destinationName}
-                onChange={(e) => setFormData({ ...formData, destinationName: e.target.value })}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  destinationName: e.target.value,
+                  destinationConfig: {}, // Reset config when destination changes
+                })}
                 className={inputClassName}
                 required
               >
@@ -379,17 +403,37 @@ export function PipelineCreatePage() {
               </select>
             </div>
 
+            {formData.destinationName && (
+              <div className="pl-4 border-l-2 border-bizon-border">
+                <label className="block text-sm font-medium text-bizon-text mb-2">
+                  Destination Configuration
+                </label>
+                <DestinationConfigForm
+                  destinationName={formData.destinationName}
+                  config={formData.destinationConfig}
+                  onChange={(config) => setFormData({ ...formData, destinationConfig: config })}
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-bizon-text mb-1">
                 Schedule
               </label>
               <select
                 value={formData.schedulePreset}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  schedulePreset: e.target.value,
-                  scheduleCustom: e.target.value === 'custom' ? formData.scheduleCustom : ''
-                })}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setFormData({
+                    ...formData,
+                    schedulePreset: value,
+                    scheduleCustom: value === 'custom' ? formData.scheduleCustom : ''
+                  })
+                  // Clear cron error when switching away from custom
+                  if (value !== 'custom') {
+                    setCronError(null)
+                  }
+                }}
                 className={inputClassName}
               >
                 {SCHEDULE_PRESETS.map((preset) => (
@@ -399,13 +443,26 @@ export function PipelineCreatePage() {
                 ))}
               </select>
               {formData.schedulePreset === 'custom' && (
-                <input
-                  type="text"
-                  value={formData.scheduleCustom}
-                  onChange={(e) => setFormData({ ...formData, scheduleCustom: e.target.value })}
-                  className={`${inputClassName} font-mono mt-2`}
-                  placeholder="0 9 * * * (minute hour day month weekday)"
-                />
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={formData.scheduleCustom}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setFormData({ ...formData, scheduleCustom: value })
+                      const result = validateCron(value)
+                      setCronError(result.valid ? null : result.error || 'Invalid cron expression')
+                    }}
+                    className={`${inputClassName} font-mono ${cronError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    placeholder="0 9 * * * (minute hour day month weekday)"
+                  />
+                  {cronError && (
+                    <p className="text-red-500 text-sm mt-1">{cronError}</p>
+                  )}
+                  <p className="text-xs text-bizon-muted mt-1">
+                    Format: minute (0-59) hour (0-23) day (1-31) month (1-12) weekday (0-6, 0=Sun)
+                  </p>
+                </div>
               )}
             </div>
 

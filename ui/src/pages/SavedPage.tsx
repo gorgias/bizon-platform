@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent, Button, PageLoader, EmptyState } from '../components/ui'
+import { TestConnectionButton } from '../components/TestConnectionButton'
 import {
   useSavedSources,
   useSavedDestinations,
@@ -57,17 +58,25 @@ export function SavedPage() {
                           </p>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm('Delete this saved source?')) {
-                            deleteSource.mutate(source.id)
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-bizon-danger" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <TestConnectionButton
+                          type="source"
+                          connectorName={source.connector_name}
+                          config={source.config}
+                          stream={source.config.stream as string | undefined}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Delete this saved source?')) {
+                              deleteSource.mutate(source.id)
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-bizon-danger" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -106,17 +115,24 @@ export function SavedPage() {
                           </p>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm('Delete this saved destination?')) {
-                            deleteDestination.mutate(dest.id)
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-bizon-danger" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <TestConnectionButton
+                          type="destination"
+                          connectorName={dest.connector_name}
+                          config={dest.config}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Delete this saved destination?')) {
+                              deleteDestination.mutate(dest.id)
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-bizon-danger" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
