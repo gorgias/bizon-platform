@@ -15,9 +15,14 @@ class BuildBetterSourceConfig(SourceConfig):
     api_key: str
 
 
-SIGNALS_QUERY = """
-query GetSignals($limit: Int!, $offset: Int!) {
-  extraction(limit: $limit, offset: $offset, order_by: { id: asc }) {
+# Incremental query with created_at filter
+SIGNALS_QUERY_INCREMENTAL = """
+query GetSignals($limit: Int!, $cursor: timestamp!) {
+  extraction(
+    limit: $limit,
+    order_by: { created_at: asc },
+    where: { created_at: { _gt: $cursor } }
+  ) {
     id
     summary
     context
@@ -38,12 +43,72 @@ query GetSignals($limit: Int!, $offset: Int!) {
 }
 """
 
-FEEDBACK_QUERY = """
+# Full sync query (no filter)
+SIGNALS_QUERY_FULL = """
+query GetSignals($limit: Int!, $offset: Int!) {
+  extraction(
+    limit: $limit,
+    offset: $offset,
+    order_by: { created_at: asc }
+  ) {
+    id
+    summary
+    context
+    start_sec
+    end_sec
+    interview_id
+    created_at
+    types { type { name } }
+    topics { topic { text } }
+    attendee {
+      person {
+        first_name
+        last_name
+        email
+      }
+    }
+  }
+}
+"""
+
+# Incremental feedback query
+FEEDBACK_QUERY_INCREMENTAL = """
+query GetFeedback($limit: Int!, $cursor: timestamptz!) {
+  conversation_message(
+    limit: $limit,
+    order_by: { created_at: asc },
+    where: {
+      _and: [
+        { message: { _ilike: "%Feedback Submitted%" } },
+        { created_at: { _gt: $cursor } }
+      ]
+    }
+  ) {
+    id
+    message
+    sent_at
+    created_at
+    speaker
+    conversation_id
+    author {
+      id
+      person {
+        first_name
+        last_name
+        email
+      }
+    }
+  }
+}
+"""
+
+# Full sync feedback query
+FEEDBACK_QUERY_FULL = """
 query GetFeedback($limit: Int!, $offset: Int!) {
   conversation_message(
     limit: $limit,
     offset: $offset,
-    order_by: { id: asc },
+    order_by: { created_at: asc },
     where: { message: { _ilike: "%Feedback Submitted%" } }
   ) {
     id
@@ -66,7 +131,11 @@ query GetFeedback($limit: Int!, $offset: Int!) {
 
 
 class BuildBetterSource(AbstractSource):
-    """Source connector for BuildBetter."""
+    """Source connector for BuildBetter.
+
+    Supports incremental sync using created_at as cursor field.
+    Configure with: sync_mode: incremental, cursor_field: created_at
+    """
 
     API_URL = "https://api.buildbetter.app/v1/graphql"
     PAGE_SIZE = 100
@@ -102,7 +171,7 @@ class BuildBetterSource(AbstractSource):
             self.API_URL,
             json={"query": query, "variables": variables},
             headers=self._get_headers(),
-            timeout=30,
+            timeout=60,
         )
         response.raise_for_status()
         return response.json()
@@ -111,9 +180,9 @@ class BuildBetterSource(AbstractSource):
         """Test the connection by fetching a single record."""
         try:
             if self.config.stream == "feedback":
-                result = self._execute_query(FEEDBACK_QUERY, {"limit": 1, "offset": 0})
+                result = self._execute_query(FEEDBACK_QUERY_FULL, {"limit": 1, "offset": 0})
             else:
-                result = self._execute_query(SIGNALS_QUERY, {"limit": 1, "offset": 0})
+                result = self._execute_query(SIGNALS_QUERY_FULL, {"limit": 1, "offset": 0})
 
             if "errors" in result:
                 return False, f"GraphQL error: {result['errors']}"
@@ -180,17 +249,35 @@ class BuildBetterSource(AbstractSource):
         }
 
     def get(self, pagination: dict = None) -> SourceIteration:
-        """Fetch records from BuildBetter."""
-        offset = pagination.get("offset", 0) if pagination else 0
+        """Fetch records from BuildBetter.
+
+        Supports incremental sync via cursor in pagination:
+        - pagination.cursor: ISO timestamp to fetch records created after
+        - pagination.offset: For full sync pagination
+        """
+        pagination = pagination or {}
+        cursor = pagination.get("cursor")
 
         if self.config.stream == "feedback":
-            return self._get_feedback(offset)
+            return self._get_feedback(pagination, cursor)
         else:
-            return self._get_signals(offset)
+            return self._get_signals(pagination, cursor)
 
-    def _get_signals(self, offset: int) -> SourceIteration:
+    def _get_signals(self, pagination: dict, cursor: str | None) -> SourceIteration:
         """Fetch signals (AI-extracted insights)."""
-        result = self._execute_query(SIGNALS_QUERY, {"limit": self.PAGE_SIZE, "offset": offset})
+        if cursor:
+            # Incremental sync - filter by created_at > cursor
+            result = self._execute_query(
+                SIGNALS_QUERY_INCREMENTAL,
+                {"limit": self.PAGE_SIZE, "cursor": cursor},
+            )
+        else:
+            # Full sync - use offset pagination
+            offset = pagination.get("offset", 0)
+            result = self._execute_query(
+                SIGNALS_QUERY_FULL,
+                {"limit": self.PAGE_SIZE, "offset": offset},
+            )
 
         if "errors" in result:
             raise Exception(f"GraphQL error: {result['errors']}")
@@ -202,15 +289,35 @@ class BuildBetterSource(AbstractSource):
             for signal in extractions
         ]
 
+        # Determine next pagination
         next_pagination = {}
         if len(extractions) == self.PAGE_SIZE:
-            next_pagination = {"offset": offset + self.PAGE_SIZE}
+            if cursor:
+                # For incremental, use the last record's created_at as next cursor
+                last_created_at = extractions[-1].get("created_at")
+                next_pagination = {"cursor": last_created_at}
+            else:
+                # For full sync, use offset
+                offset = pagination.get("offset", 0)
+                next_pagination = {"offset": offset + self.PAGE_SIZE}
 
         return SourceIteration(next_pagination=next_pagination, records=records)
 
-    def _get_feedback(self, offset: int) -> SourceIteration:
+    def _get_feedback(self, pagination: dict, cursor: str | None) -> SourceIteration:
         """Fetch feedback form submissions."""
-        result = self._execute_query(FEEDBACK_QUERY, {"limit": self.PAGE_SIZE, "offset": offset})
+        if cursor:
+            # Incremental sync
+            result = self._execute_query(
+                FEEDBACK_QUERY_INCREMENTAL,
+                {"limit": self.PAGE_SIZE, "cursor": cursor},
+            )
+        else:
+            # Full sync
+            offset = pagination.get("offset", 0)
+            result = self._execute_query(
+                FEEDBACK_QUERY_FULL,
+                {"limit": self.PAGE_SIZE, "offset": offset},
+            )
 
         if "errors" in result:
             raise Exception(f"GraphQL error: {result['errors']}")
@@ -222,8 +329,14 @@ class BuildBetterSource(AbstractSource):
             for msg in messages
         ]
 
+        # Determine next pagination
         next_pagination = {}
         if len(messages) == self.PAGE_SIZE:
-            next_pagination = {"offset": offset + self.PAGE_SIZE}
+            if cursor:
+                last_created_at = messages[-1].get("created_at")
+                next_pagination = {"cursor": last_created_at}
+            else:
+                offset = pagination.get("offset", 0)
+                next_pagination = {"offset": offset + self.PAGE_SIZE}
 
         return SourceIteration(next_pagination=next_pagination, records=records)
