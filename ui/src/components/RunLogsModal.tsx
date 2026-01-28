@@ -15,8 +15,6 @@ export function RunLogsModal({ run: initialRun, onClose }: RunLogsModalProps) {
   const logsContainerRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
 
-  const isActive = initialRun.status === 'pending' || initialRun.status === 'running'
-
   // Poll for run status updates
   const { data: run } = useRun(initialRun.id)
   const currentRun = run || initialRun

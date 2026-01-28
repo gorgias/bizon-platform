@@ -17,8 +17,8 @@ postgresql:
   auth:
     database: bizon_platform_lite
     username: bizon
-    # -- Password for the database user (will be auto-generated if not set)
-    password: ""
+    # -- Password for the database user (default for development, change in production)
+    password: "bizon-dev-password"
     # -- Use existing secret for password (key: postgres-password)
     existingSecret: ""
   # -- Storage configuration
@@ -50,7 +50,7 @@ externalDatabase:
 # -- API server configuration
 api:
   image:
-    repository: bizon-platform-lite
+    repository: ghcr.io/bizon-data/bizon-platform-lite
     tag: latest
     pullPolicy: IfNotPresent
   # -- Number of replicas
@@ -79,7 +79,7 @@ api:
 # -- Worker configuration
 worker:
   image:
-    repository: bizon-platform-lite
+    repository: ghcr.io/bizon-data/bizon-platform-lite
     tag: latest
     pullPolicy: IfNotPresent
   # -- Number of replicas
@@ -111,7 +111,7 @@ worker:
 # -- UI configuration
 ui:
   image:
-    repository: bizon-platform-lite-ui
+    repository: ghcr.io/bizon-data/bizon-platform-lite-ui
     tag: latest
     pullPolicy: IfNotPresent
   # -- Number of replicas
@@ -135,13 +135,14 @@ ui:
   # -- Service configuration
   service:
     type: ClusterIP
-    port: 80
+    port: 8080
 
 # -- Security configuration
 security:
   # -- Fernet encryption key for config secrets
   # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-  encryptionKey: ""
+  # Default key for development - CHANGE IN PRODUCTION
+  encryptionKey: "czRj3Wh_hP-yWGRja5ClACl6kxeqJi9h_XGruefJIMk="
   # -- Use existing secret for encryption key (key: encryption-key)
   existingEncryptionKeySecret: ""
   # -- Admin password for basic auth (optional, leave empty to disable)

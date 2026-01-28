@@ -33,7 +33,7 @@ The application is available at:
    kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}"
 
 2. Check API health:
-   kubectl exec -it deploy/{{ include "bizon-platform-lite.fullname" . }}-api -- curl -s http://localhost:8000/api/health
+   kubectl exec deploy/{{ include "bizon-platform-lite.fullname" . }}-api -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/api/health').read().decode())"
 
 {{- if .Values.postgresql.enabled }}
 

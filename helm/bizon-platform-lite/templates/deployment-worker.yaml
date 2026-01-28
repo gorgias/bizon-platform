@@ -26,22 +26,6 @@ spec:
       serviceAccountName: {{ include "bizon-platform-lite.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      initContainers:
-        - name: wait-for-api
-          image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"
-          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              echo "Waiting for API to be ready..."
-              until curl -sf http://{{ include "bizon-platform-lite.fullname" . }}-api:{{ .Values.api.service.port }}/api/health > /dev/null 2>&1; do
-                echo "API not ready, retrying..."
-                sleep 2
-              done
-              echo "API is ready!"
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
       containers:
         - name: worker
           image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"

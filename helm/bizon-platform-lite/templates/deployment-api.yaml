@@ -25,48 +25,10 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-        - name: wait-for-db
-          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
-          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              echo "Waiting for PostgreSQL to be ready..."
-              until python -c "
-              import asyncio
-              import asyncpg
-              async def check():
-                  try:
-                      conn = await asyncpg.connect(
-                          host='{{ include "bizon-platform-lite.postgresql.host" . }}',
-                          port={{ include "bizon-platform-lite.postgresql.port" . }},
-                          user='{{ include "bizon-platform-lite.postgresql.username" . }}',
-                          password='$DB_PASSWORD',
-                          database='{{ include "bizon-platform-lite.postgresql.database" . }}'
-                      )
-                      await conn.close()
-                      return True
-                  except Exception as e:
-                      print(f'Waiting: {e}')
-                      return False
-              exit(0 if asyncio.run(check()) else 1)
-              "; do
-                sleep 2
-              done
-              echo "PostgreSQL is ready!"
-          env:
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "bizon-platform-lite.postgresql.secretName" . }}
-                  key: postgres-password
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
         - name: migrate
           image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
-          command: ["uv", "run", "alembic", "upgrade", "head"]
+          command: ["alembic", "upgrade", "head"]
           env:
             - name: DB_USERNAME
               value: {{ include "bizon-platform-lite.postgresql.username" . | quote }}
@@ -77,9 +39,6 @@ spec:
                   key: postgres-password
             - name: DATABASE_URL
               value: {{ include "bizon-platform-lite.databaseUrl" . | quote }}
-          envFrom:
-            - configMapRef:
-                name: {{ include "bizon-platform-lite.fullname" . }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
       containers:

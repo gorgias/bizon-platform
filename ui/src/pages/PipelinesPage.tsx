@@ -150,15 +150,6 @@ export function PipelinesPage() {
     setFilters({ search: '', status: 'all', source: '', destination: '', tags: [] })
   }
 
-  const toggleTagFilter = (tag: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      tags: prev.tags.includes(tag)
-        ? prev.tags.filter((t) => t !== tag)
-        : [...prev.tags, tag],
-    }))
-  }
-
   const groupedPipelines = useMemo(() => {
     return groupPipelines(filteredPipelines, groupBy)
   }, [filteredPipelines, groupBy])

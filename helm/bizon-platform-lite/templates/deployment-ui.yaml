@@ -28,17 +28,10 @@ spec:
           image: "{{ .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}"
           imagePullPolicy: {{ .Values.ui.image.pullPolicy }}
           securityContext:
-            runAsNonRoot: false
-            runAsUser: 0
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-              add:
-                - NET_BIND_SERVICE
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: http
-              containerPort: 80
+              containerPort: {{ .Values.ui.service.port }}
               protocol: TCP
           livenessProbe:
             httpGet:

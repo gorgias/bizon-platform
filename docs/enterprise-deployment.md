@@ -62,15 +62,27 @@ GRANT ALL PRIVILEGES ON DATABASE bizon_acme TO bizon_acme;
 # Create namespace
 kubectl create namespace acme
 
-# Deploy Bizon
-helm install bizon ./helm/bizon-platform \
+# Deploy Bizon from GHCR
+helm install bizon oci://ghcr.io/bizon-data/charts/bizon-platform-lite \
   --namespace acme \
-  --set database.url="postgresql+asyncpg://bizon_acme:password@postgres-host:5432/bizon_acme" \
+  --set postgresql.enabled=false \
+  --set externalDatabase.host="postgres-host" \
+  --set externalDatabase.database="bizon_acme" \
+  --set externalDatabase.username="bizon_acme" \
+  --set externalDatabase.password="password" \
   --set ingress.enabled=true \
-  --set ingress.host="acme.bizon.cloud" \
-  --set env.ENCRYPTION_KEY="customer-specific-encryption-key" \
-  --set env.ADMIN_PASSWORD="customer-specific-password" \
-  --set env.INSTANCE_NAME="Acme Bizon"
+  --set ingress.hosts[0].host="acme.bizon.cloud" \
+  --set security.encryptionKey="customer-specific-encryption-key" \
+  --set security.adminPassword="customer-specific-password" \
+  --set config.instanceName="Acme Bizon"
+```
+
+Alternatively, use a local chart:
+
+```bash
+helm install bizon ./helm/bizon-platform-lite \
+  --namespace acme \
+  -f values-acme.yaml
 ```
 
 ### Step 3: Run Migrations
@@ -113,29 +125,45 @@ resource "kubernetes_namespace" "tenant" {
   }
 }
 
-# Deploy Bizon via Helm
+# Deploy Bizon via Helm from GHCR
 resource "helm_release" "bizon" {
   name       = "bizon"
   namespace  = kubernetes_namespace.tenant.metadata[0].name
-  chart      = "./helm/bizon-platform"
+  repository = "oci://ghcr.io/bizon-data/charts"
+  chart      = "bizon-platform-lite"
 
   set {
-    name  = "database.url"
-    value = "postgresql+asyncpg://.../${postgresql_database.tenant.name}"
+    name  = "postgresql.enabled"
+    value = "false"
   }
 
   set {
-    name  = "ingress.host"
+    name  = "externalDatabase.host"
+    value = var.postgres_host
+  }
+
+  set {
+    name  = "externalDatabase.database"
+    value = postgresql_database.tenant.name
+  }
+
+  set {
+    name  = "ingress.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "ingress.hosts[0].host"
     value = "${var.tenant}.bizon.cloud"
   }
 
   set_sensitive {
-    name  = "env.ENCRYPTION_KEY"
+    name  = "security.encryptionKey"
     value = random_password.encryption_key.result
   }
 
   set_sensitive {
-    name  = "env.ADMIN_PASSWORD"
+    name  = "security.adminPassword"
     value = random_password.admin_password.result
   }
 }

@@ -29,7 +29,7 @@ metadata:
 data:
   default.conf: |
     server {
-        listen 80;
+        listen {{ .Values.ui.service.port }};
         server_name localhost;
         root /usr/share/nginx/html;
         index index.html;

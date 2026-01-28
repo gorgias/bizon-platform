@@ -267,6 +267,25 @@ Full documentation: `custom_sources/README.md`
 }
 ```
 
+## Kubernetes Deployment
+
+Install from GHCR using the Helm chart:
+
+```bash
+# Install with defaults (includes bundled PostgreSQL)
+helm install bizon oci://ghcr.io/bizon-data/charts/bizon-platform-lite
+
+# Access the UI
+kubectl port-forward svc/bizon-bizon-platform-lite-ui 3000:80
+open http://localhost:3000
+```
+
+Pre-built images are available at:
+- `ghcr.io/bizon-data/bizon-platform-lite` (API + Worker)
+- `ghcr.io/bizon-data/bizon-platform-lite-ui` (UI)
+
+See [helm/bizon-platform-lite/README.md](helm/bizon-platform-lite/README.md) for full configuration options and [docs/enterprise-deployment.md](docs/enterprise-deployment.md) for multi-tenant setups.
+
 ## Architecture
 
 ```
@@ -288,6 +307,8 @@ Full documentation: `custom_sources/README.md`
 
 ```
 bizon-platform-lite/
+├── .github/workflows/       # CI/CD pipelines
+│   └── release.yml          # Build & publish to GHCR
 ├── bizon_platform_lite/
 │   ├── api/
 │   │   ├── app.py           # FastAPI app
@@ -304,6 +325,8 @@ bizon-platform-lite/
 │   ├── storage/             # File storage
 │   ├── crypto.py            # Config encryption
 │   └── settings.py          # Configuration
+├── helm/                    # Kubernetes deployment
+│   └── bizon-platform-lite/ # Helm chart
 ├── ui/                      # React frontend
 ├── tests/                   # Test suite
 ├── custom_sources/          # Custom Python sources

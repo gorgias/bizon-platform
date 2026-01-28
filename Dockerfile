@@ -12,14 +12,14 @@ COPY ui/ .
 RUN npm run build
 
 # =============================================================================
-# UI Production Stage (nginx)
+# UI Production Stage (nginx unprivileged)
 # =============================================================================
-FROM nginx:alpine AS ui
+FROM nginxinc/nginx-unprivileged:alpine AS ui
 
 COPY --from=ui-build /app/dist /usr/share/nginx/html
 COPY ui/nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
 
 # =============================================================================
@@ -46,8 +46,12 @@ COPY alembic.ini ./
 # Install dependencies
 RUN uv pip install --system -e .
 
-# Create directories
-RUN mkdir -p /tmp/bizon-outputs /custom_sources
+# Create non-root user and directories
+RUN useradd -m -u 1000 bizon && \
+    mkdir -p /tmp/bizon-outputs /custom_sources && \
+    chown -R bizon:bizon /app /tmp/bizon-outputs /custom_sources
+
+USER bizon
 
 # Default command runs the API
 CMD ["python", "-m", "bizon_platform_lite"]

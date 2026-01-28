@@ -227,11 +227,11 @@ Git token secret name
 {{- end }}
 
 {{/*
-CORS allowed origins as comma-separated string
+CORS allowed origins as JSON array string
 */}}
 {{- define "bizon-platform-lite.corsAllowedOrigins" -}}
 {{- if kindIs "slice" .Values.config.corsAllowedOrigins }}
-{{- join "," .Values.config.corsAllowedOrigins }}
+{{- .Values.config.corsAllowedOrigins | toJson }}
 {{- else }}
 {{- .Values.config.corsAllowedOrigins }}
 {{- end }}
