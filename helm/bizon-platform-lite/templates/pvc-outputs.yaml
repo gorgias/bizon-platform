@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bizon-platform-lite.fullname" . }}-outputs
+  labels:
+    {{- include "bizon-platform-lite.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.storage.outputs.accessMode }}
+  {{- if .Values.storage.outputs.storageClass }}
+  storageClassName: {{ .Values.storage.outputs.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.outputs.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bizon-platform-lite.fullname" . }}-custom-sources
+  labels:
+    {{- include "bizon-platform-lite.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.storage.customSources.accessMode }}
+  {{- if .Values.storage.customSources.storageClass }}
+  storageClassName: {{ .Values.storage.customSources.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.customSources.size }}

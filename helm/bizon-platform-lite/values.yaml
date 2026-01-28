@@ -1,0 +1,232 @@
+# Default values for bizon-platform-lite
+
+# -- Global settings
+global:
+  # -- Image pull secrets for private registries
+  imagePullSecrets: []
+
+# -- PostgreSQL configuration (bundled StatefulSet)
+postgresql:
+  # -- Deploy bundled PostgreSQL StatefulSet
+  enabled: true
+  image:
+    repository: cgr.dev/chainguard/postgres
+    tag: latest
+    pullPolicy: IfNotPresent
+  # -- Database credentials
+  auth:
+    database: bizon_platform_lite
+    username: bizon
+    # -- Password for the database user (will be auto-generated if not set)
+    password: ""
+    # -- Use existing secret for password (key: postgres-password)
+    existingSecret: ""
+  # -- Storage configuration
+  storage:
+    size: 10Gi
+    storageClass: ""
+  # -- Resource limits
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+
+# -- External database configuration (when postgresql.enabled=false)
+externalDatabase:
+  host: ""
+  port: 5432
+  database: bizon_platform_lite
+  username: bizon
+  # -- Password for external database
+  password: ""
+  # -- Use existing secret for password (key: postgres-password)
+  existingSecret: ""
+  # -- Use SSL connection
+  sslMode: prefer
+
+# -- API server configuration
+api:
+  image:
+    repository: bizon-platform-lite
+    tag: latest
+    pullPolicy: IfNotPresent
+  # -- Number of replicas
+  replicaCount: 1
+  # -- Resource limits
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  # -- Pod annotations
+  podAnnotations: {}
+  # -- Node selector
+  nodeSelector: {}
+  # -- Tolerations
+  tolerations: []
+  # -- Affinity
+  affinity: {}
+  # -- Service configuration
+  service:
+    type: ClusterIP
+    port: 8000
+
+# -- Worker configuration
+worker:
+  image:
+    repository: bizon-platform-lite
+    tag: latest
+    pullPolicy: IfNotPresent
+  # -- Number of replicas
+  replicaCount: 1
+  # -- Resource limits
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 2Gi
+      cpu: 2000m
+  # -- Pod annotations
+  podAnnotations: {}
+  # -- Node selector
+  nodeSelector: {}
+  # -- Tolerations
+  tolerations: []
+  # -- Affinity
+  affinity: {}
+  # -- Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+# -- UI configuration
+ui:
+  image:
+    repository: bizon-platform-lite-ui
+    tag: latest
+    pullPolicy: IfNotPresent
+  # -- Number of replicas
+  replicaCount: 1
+  # -- Resource limits
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 500m
+  # -- Pod annotations
+  podAnnotations: {}
+  # -- Node selector
+  nodeSelector: {}
+  # -- Tolerations
+  tolerations: []
+  # -- Affinity
+  affinity: {}
+  # -- Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+
+# -- Security configuration
+security:
+  # -- Fernet encryption key for config secrets
+  # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  encryptionKey: ""
+  # -- Use existing secret for encryption key (key: encryption-key)
+  existingEncryptionKeySecret: ""
+  # -- Admin password for basic auth (optional, leave empty to disable)
+  adminPassword: ""
+  # -- Use existing secret for admin password (key: admin-password)
+  existingAdminPasswordSecret: ""
+
+# -- Application configuration
+config:
+  # -- Enable debug mode
+  debug: false
+  # -- Worker poll interval in seconds
+  workerPollInterval: 2
+  # -- Log retention in days (0 = keep forever)
+  logRetentionDays: 30
+  # -- Custom sources directory
+  customSourcesDir: /custom_sources
+  # -- Instance branding
+  instanceName: Bizon
+  instanceDescription: Data pipeline orchestration platform
+  # -- CORS allowed origins (comma-separated or list)
+  corsAllowedOrigins:
+    - http://localhost:5173
+    - http://localhost:3000
+
+# -- Git sync for custom sources
+gitSync:
+  enabled: false
+  repoUrl: ""
+  branch: main
+  path: custom_sources
+  # -- Personal access token for private repos
+  token: ""
+  # -- Use existing secret for token (key: git-token)
+  existingTokenSecret: ""
+
+# -- Storage configuration
+storage:
+  # -- Shared outputs storage (logs, artifacts)
+  outputs:
+    size: 10Gi
+    storageClass: ""
+    # -- Access mode (ReadWriteOnce or ReadWriteMany)
+    accessMode: ReadWriteOnce
+  # -- Custom sources storage
+  customSources:
+    size: 1Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+
+# -- Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: bizon.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: bizon-tls
+    #   hosts:
+    #     - bizon.local
+
+# -- Service account configuration
+serviceAccount:
+  # -- Create service account
+  create: true
+  # -- Service account name (auto-generated if not set)
+  name: ""
+  # -- Annotations for the service account
+  annotations: {}
+
+# -- Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# -- Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
