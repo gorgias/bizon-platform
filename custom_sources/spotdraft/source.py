@@ -60,9 +60,7 @@ class SpotDraftSource(AbstractSource):
             "Content-Type": "application/json",
         }
 
-    def _make_request(
-        self, method: str, endpoint: str, params: dict = None, json: dict = None
-    ) -> requests.Response:
+    def _make_request(self, method: str, endpoint: str, params: dict = None, json: dict = None) -> requests.Response:
         """Make an authenticated API request."""
         url = f"{self.config.base_url}{endpoint}"
         response = requests.request(
@@ -277,7 +275,7 @@ class SpotDraftSource(AbstractSource):
             total_count = None
         else:
             contracts = data.get("results", data.get("contracts", data.get("data", [])))
-            total_count = data.get("count") or data.get("total")
+            total_count = data.get("total_results") or data.get("count") or data.get("total")
 
         records = []
         for contract in contracts:
