@@ -1,0 +1,15 @@
+name: spotdraft_contracts
+
+source:
+  name: spotdraft
+  stream: contracts
+  source_file_path: /custom_sources/spotdraft/source.py
+  client_id: ${SPOTDRAFT_CLIENT_ID}
+  client_secret: ${SPOTDRAFT_CLIENT_SECRET}
+  extract_pdf_text: true
+  max_iterations: 1
+
+destination:
+  name: logger
+  config:
+    dummy: dummy
