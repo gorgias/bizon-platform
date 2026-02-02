@@ -6,6 +6,7 @@ import os
 import shutil
 import zipfile
 from io import BytesIO
+from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -26,10 +27,29 @@ class SourceCodeResponse(BaseModel):
     file_path: str
 
 
+class ConfigFieldSchema(BaseModel):
+    """Schema for a single config field."""
+
+    name: str
+    type: str  # "string", "integer", "number", "boolean"
+    required: bool
+    default: Any | None = None
+    description: str | None = None
+    is_secret: bool = False  # True for fields containing "key", "secret", "password", "token"
+
+
+class ConfigSchemaResponse(BaseModel):
+    """Response containing config schema for a custom source."""
+
+    source_name: str
+    fields: list[ConfigFieldSchema]
+
+
 class TestConnectionRequest(BaseModel):
     """Request to test a custom source connection."""
 
     stream: str
+    config: dict[str, Any] = {}  # Additional config fields
 
 
 class TestConnectionResponse(BaseModel):
@@ -127,7 +147,104 @@ async def get_source_code(name: str) -> SourceCodeResponse:
         raise HTTPException(status_code=500, detail=f"Failed to read source code: {str(e)}")
 
 
-def _test_connection_sync(source_name: str, stream: str) -> TestConnectionResponse:
+# Base SourceConfig fields to exclude from custom config schema
+_BASE_SOURCE_CONFIG_FIELDS = {
+    "name",
+    "stream",
+    "source_file_path",
+    "authentication",
+    "sync_mode",
+    "cursor_field",
+}
+
+# Keywords that indicate a field contains sensitive data
+_SECRET_KEYWORDS = {"key", "secret", "password", "token", "credential", "auth"}
+
+
+def _is_secret_field(field_name: str) -> bool:
+    """Check if a field name suggests it contains sensitive data."""
+    field_lower = field_name.lower()
+    return any(keyword in field_lower for keyword in _SECRET_KEYWORDS)
+
+
+def _json_type_to_simple(json_type: str | list | None, format_hint: str | None = None) -> str:
+    """Convert JSON Schema type to simple type string."""
+    if isinstance(json_type, list):
+        # Handle nullable types like ["string", "null"]
+        types = [t for t in json_type if t != "null"]
+        json_type = types[0] if types else "string"
+
+    if json_type == "integer":
+        return "integer"
+    elif json_type == "number":
+        return "number"
+    elif json_type == "boolean":
+        return "boolean"
+    else:
+        return "string"
+
+
+@router.get("/{name}/config-schema", response_model=ConfigSchemaResponse)
+async def get_config_schema(name: str) -> ConfigSchemaResponse:
+    """Get the config schema for a custom source, excluding base SourceConfig fields."""
+    try:
+        source_class = _get_source_class(name)
+        config_class = source_class.get_config_class()
+
+        # Get JSON schema from Pydantic model
+        schema = config_class.model_json_schema()
+        properties = schema.get("properties", {})
+        required_fields = set(schema.get("required", []))
+
+        # Handle $defs for referenced schemas
+        defs = schema.get("$defs", {})
+
+        fields: list[ConfigFieldSchema] = []
+
+        for field_name, field_info in properties.items():
+            # Skip base SourceConfig fields
+            if field_name in _BASE_SOURCE_CONFIG_FIELDS:
+                continue
+
+            # Handle $ref references
+            if "$ref" in field_info:
+                ref_path = field_info["$ref"]
+                ref_name = ref_path.split("/")[-1]
+                if ref_name in defs:
+                    field_info = defs[ref_name]
+
+            # Handle anyOf (often used for Optional types)
+            if "anyOf" in field_info:
+                for option in field_info["anyOf"]:
+                    if option.get("type") != "null":
+                        field_info = {**field_info, **option}
+                        break
+
+            field_type = _json_type_to_simple(
+                field_info.get("type"),
+                field_info.get("format")
+            )
+
+            fields.append(
+                ConfigFieldSchema(
+                    name=field_name,
+                    type=field_type,
+                    required=field_name in required_fields,
+                    default=field_info.get("default"),
+                    description=field_info.get("description"),
+                    is_secret=_is_secret_field(field_name),
+                )
+            )
+
+        return ConfigSchemaResponse(source_name=name, fields=fields)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get config schema: {str(e)}")
+
+
+def _test_connection_sync(source_name: str, stream: str, config_values: dict[str, Any]) -> TestConnectionResponse:
     """Synchronous connection test implementation."""
     try:
         source_class = _get_source_class(source_name)
@@ -143,7 +260,13 @@ def _test_connection_sync(source_name: str, stream: str) -> TestConnectionRespon
 
         # Create config and source instance
         docker_path = f"/custom_sources/{source_name}/source.py"
-        config = config_class(name=source_name, stream=stream, source_file_path=docker_path)
+        config_dict = {
+            "name": source_name,
+            "stream": stream,
+            "source_file_path": docker_path,
+            **config_values,  # Merge user-provided config values
+        }
+        config = config_class(**config_dict)
         source_instance = source_class(config=config)
 
         # Test connection
@@ -168,7 +291,9 @@ async def test_connection(name: str, request: TestConnectionRequest) -> TestConn
     """Test connection for a custom source stream."""
     try:
         result = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(None, _test_connection_sync, name, request.stream),
+            asyncio.get_event_loop().run_in_executor(
+                None, _test_connection_sync, name, request.stream, request.config
+            ),
             timeout=CHECK_TIMEOUT_SECONDS,
         )
         return result

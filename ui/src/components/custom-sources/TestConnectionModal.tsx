@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { CheckCircle, XCircle, Play } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { CheckCircle, XCircle, Play, Eye, EyeOff } from 'lucide-react'
 import { Modal, Button, LoadingSpinner } from '../ui'
-import { useTestCustomSourceConnection } from '../../hooks'
-import type { CustomSource } from '../../api'
+import { useTestCustomSourceConnection, useCustomSourceConfigSchema } from '../../hooks'
+import type { CustomSource, ConfigFieldSchema } from '../../api'
 
 interface TestConnectionModalProps {
   isOpen: boolean
@@ -10,28 +10,152 @@ interface TestConnectionModalProps {
   source: CustomSource | null
 }
 
+function ConfigField({
+  field,
+  value,
+  onChange,
+}: {
+  field: ConfigFieldSchema
+  value: unknown
+  onChange: (value: unknown) => void
+}) {
+  const [showSecret, setShowSecret] = useState(false)
+
+  const inputClassName =
+    'w-full px-3 py-2 bg-bizon-bg border border-bizon-border rounded-lg text-bizon-text focus:outline-none focus:ring-2 focus:ring-bizon-primary/50'
+
+  const convertValue = (rawValue: string): unknown => {
+    if (field.type === 'integer') {
+      const parsed = parseInt(rawValue, 10)
+      return isNaN(parsed) ? '' : parsed
+    }
+    if (field.type === 'number') {
+      const parsed = parseFloat(rawValue)
+      return isNaN(parsed) ? '' : parsed
+    }
+    if (field.type === 'boolean') {
+      return rawValue === 'true'
+    }
+    return rawValue
+  }
+
+  if (field.type === 'boolean') {
+    return (
+      <div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(e) => onChange(e.target.checked)}
+            className="w-4 h-4 rounded border-bizon-border bg-bizon-bg text-bizon-primary focus:ring-bizon-primary/50"
+          />
+          <span className="text-sm font-medium text-bizon-text">
+            {field.name}
+            {field.required && <span className="text-bizon-danger ml-1">*</span>}
+          </span>
+        </label>
+        {field.description && (
+          <p className="text-xs text-bizon-textSecondary mt-1 ml-6">{field.description}</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-bizon-text mb-1">
+        {field.name}
+        {field.required && <span className="text-bizon-danger ml-1">*</span>}
+      </label>
+      {field.description && (
+        <p className="text-xs text-bizon-textSecondary mb-2">{field.description}</p>
+      )}
+      <div className="relative">
+        <input
+          type={field.is_secret && !showSecret ? 'password' : field.type === 'integer' || field.type === 'number' ? 'number' : 'text'}
+          value={value !== undefined && value !== null ? String(value) : ''}
+          onChange={(e) => onChange(convertValue(e.target.value))}
+          placeholder={field.default !== null ? `Default: ${field.default}` : undefined}
+          className={`${inputClassName} ${field.is_secret ? 'pr-10' : ''}`}
+        />
+        {field.is_secret && (
+          <button
+            type="button"
+            onClick={() => setShowSecret(!showSecret)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-bizon-textSecondary hover:text-bizon-text"
+          >
+            {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function TestConnectionModal({ isOpen, onClose, source }: TestConnectionModalProps) {
   const [selectedStream, setSelectedStream] = useState<string>('')
+  const [configValues, setConfigValues] = useState<Record<string, unknown>>({})
   const testConnection = useTestCustomSourceConnection()
+
+  const { data: configSchema, isLoading: isLoadingSchema } = useCustomSourceConfigSchema(
+    source?.name || '',
+    isOpen && !!source
+  )
+
+  // Reset state when source changes
+  useEffect(() => {
+    if (source) {
+      setSelectedStream(source.streams[0] || '')
+      setConfigValues({})
+      testConnection.reset()
+    }
+  }, [source?.name])
+
+  const handleConfigChange = (fieldName: string, value: unknown) => {
+    setConfigValues((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }))
+  }
+
+  const customFields = configSchema?.fields || []
+
+  // Check if all required fields are filled
+  const requiredFieldsMissing = customFields
+    .filter((f) => f.required)
+    .some((f) => {
+      const value = configValues[f.name]
+      return value === undefined || value === null || value === ''
+    })
+
+  const canTest = selectedStream && !requiredFieldsMissing
 
   const handleTest = () => {
     if (source && selectedStream) {
+      // Build config object, only including non-empty values
+      const config: Record<string, unknown> = {}
+      for (const field of customFields) {
+        const value = configValues[field.name]
+        if (value !== undefined && value !== null && value !== '') {
+          config[field.name] = value
+        }
+      }
+
       testConnection.mutate({
         name: source.name,
-        request: { stream: selectedStream },
+        request: {
+          stream: selectedStream,
+          config: Object.keys(config).length > 0 ? config : undefined,
+        },
       })
     }
   }
 
   const handleClose = () => {
     setSelectedStream('')
+    setConfigValues({})
     testConnection.reset()
     onClose()
-  }
-
-  // Set default stream when source changes
-  if (source && !selectedStream && source.streams.length > 0) {
-    setSelectedStream(source.streams[0])
   }
 
   return (
@@ -56,9 +180,32 @@ export function TestConnectionModal({ isOpen, onClose, source }: TestConnectionM
               </select>
             </div>
 
+            {isLoadingSchema && (
+              <div className="flex items-center justify-center py-4">
+                <LoadingSpinner size="sm" className="mr-2" />
+                <span className="text-sm text-bizon-textSecondary">Loading configuration...</span>
+              </div>
+            )}
+
+            {customFields.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-bizon-textSecondary uppercase tracking-wide">
+                  Configuration
+                </h4>
+                {customFields.map((field) => (
+                  <ConfigField
+                    key={field.name}
+                    field={field}
+                    value={configValues[field.name]}
+                    onChange={(value) => handleConfigChange(field.name, value)}
+                  />
+                ))}
+              </div>
+            )}
+
             <Button
               onClick={handleTest}
-              disabled={testConnection.isPending || !selectedStream}
+              disabled={testConnection.isPending || !canTest || isLoadingSchema}
               className="w-full"
             >
               {testConnection.isPending ? (

@@ -137,8 +137,23 @@ export interface CustomSourceCode {
   file_path: string
 }
 
+export interface ConfigFieldSchema {
+  name: string
+  type: 'string' | 'integer' | 'number' | 'boolean'
+  required: boolean
+  default: unknown | null
+  description: string | null
+  is_secret: boolean
+}
+
+export interface ConfigSchemaResponse {
+  source_name: string
+  fields: ConfigFieldSchema[]
+}
+
 export interface TestConnectionRequest {
   stream: string
+  config?: Record<string, unknown>
 }
 
 export interface TestConnectionResponse {

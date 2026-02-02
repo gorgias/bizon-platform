@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import type {
+  ConfigSchemaResponse,
   CustomSourceCode,
   GitSyncResponse,
   GitSyncStatusResponse,
@@ -13,6 +14,9 @@ const API_BASE = '/api'
 export const customSourcesApi = {
   getCode: (name: string) =>
     apiClient.get<CustomSourceCode>(`/custom-sources/${name}/code`),
+
+  getConfigSchema: (name: string) =>
+    apiClient.get<ConfigSchemaResponse>(`/custom-sources/${name}/config-schema`),
 
   testConnection: (name: string, request: TestConnectionRequest) =>
     apiClient.post<TestConnectionResponse>(`/custom-sources/${name}/test`, request),
