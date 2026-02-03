@@ -3,7 +3,6 @@
 No authentication required - simplified fixture setup.
 """
 
-import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -16,23 +15,13 @@ from sqlalchemy import text
 from tests.fixtures.configs import VALID_DUMMY_CONFIG
 
 
-@pytest.fixture(scope="session")
-def anyio_backend():
-    return "asyncio"
-
-
-@pytest.fixture(scope="session")
-def event_loop_policy():
-    return asyncio.DefaultEventLoopPolicy()
-
-
-@pytest_asyncio.fixture(scope="session", loop_scope="session")
+@pytest_asyncio.fixture
 async def setup_database():
-    """Create database tables once per session."""
+    """Create database tables for each test."""
     from bizon_platform.db.models import Base
     from bizon_platform.db.session import get_engine, reset_engine
 
-    # Reset any previous engine
+    # Reset any previous engine to get fresh connections
     reset_engine()
 
     engine = get_engine()
@@ -42,9 +31,9 @@ async def setup_database():
         # Create all tables with the latest schema
         await conn.run_sync(Base.metadata.create_all)
 
-    yield
+    yield engine
 
-    # Cleanup after all tests
+    # Cleanup after test
     await engine.dispose()
 
 
@@ -52,7 +41,6 @@ async def setup_database():
 async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client for testing the FastAPI app."""
     from bizon_platform.api.app import create_app
-    from bizon_platform.db.session import get_engine
 
     app = create_app()
     async with AsyncClient(
@@ -62,8 +50,7 @@ async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     # Clean up data after each test
-    engine = get_engine()
-    async with engine.begin() as conn:
+    async with setup_database.begin() as conn:
         await conn.execute(text("DELETE FROM pipeline_runs"))
         await conn.execute(text("DELETE FROM pipelines"))
         await conn.execute(text("DELETE FROM saved_connectors"))
@@ -73,7 +60,6 @@ async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
 async def client_mocked(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client with mocked bizon-core for fast tests."""
     from bizon_platform.api.app import create_app
-    from bizon_platform.db.session import get_engine
 
     # Mock RunnerFactory to skip bizon-core validation
     mock_runner = MagicMock()
@@ -98,8 +84,7 @@ async def client_mocked(setup_database) -> AsyncGenerator[AsyncClient, None]:
                 yield ac
 
     # Clean up data after each test
-    engine = get_engine()
-    async with engine.begin() as conn:
+    async with setup_database.begin() as conn:
         await conn.execute(text("DELETE FROM pipeline_runs"))
         await conn.execute(text("DELETE FROM pipelines"))
         await conn.execute(text("DELETE FROM saved_connectors"))
