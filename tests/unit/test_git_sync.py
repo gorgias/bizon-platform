@@ -361,7 +361,9 @@ class TestGitSyncIntegration:
                 mock_temp.__truediv__ = lambda self, x: (
                     mock_sparse_file
                     if "sparse-checkout" in str(x)
-                    else mock_source_dir if x == "custom_sources" else MagicMock()
+                    else mock_source_dir
+                    if x == "custom_sources"
+                    else MagicMock()
                 )
 
                 sync_from_git()
