@@ -169,9 +169,7 @@ class TestListPipelines:
 class TestGetPipeline:
     """Tests for GET /api/pipelines/{id}."""
 
-    async def test_get_pipeline_success(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_get_pipeline_success(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Get existing pipeline by ID."""
         response = await client_mocked.get(f"/api/pipelines/{pipeline_mocked['id']}")
         assert response.status_code == 200
@@ -195,9 +193,7 @@ class TestGetPipeline:
 class TestUpdatePipeline:
     """Tests for PUT /api/pipelines/{id}."""
 
-    async def test_update_pipeline_name(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_update_pipeline_name(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Update pipeline name."""
         response = await client_mocked.put(
             f"/api/pipelines/{pipeline_mocked['id']}",
@@ -207,9 +203,7 @@ class TestUpdatePipeline:
         data = response.json()
         assert data["name"] == "updated-name"
 
-    async def test_update_pipeline_schedule(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_update_pipeline_schedule(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Update pipeline schedule."""
         response = await client_mocked.put(
             f"/api/pipelines/{pipeline_mocked['id']}",
@@ -219,9 +213,7 @@ class TestUpdatePipeline:
         data = response.json()
         assert data["schedule"] == "0 12 * * *"
 
-    async def test_update_pipeline_enabled(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_update_pipeline_enabled(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Update pipeline enabled status."""
         response = await client_mocked.put(
             f"/api/pipelines/{pipeline_mocked['id']}",
@@ -231,9 +223,7 @@ class TestUpdatePipeline:
         data = response.json()
         assert data["enabled"] is False
 
-    async def test_update_pipeline_config(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_update_pipeline_config(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Update pipeline config."""
         new_config = {**VALID_DUMMY_CONFIG, "name": "updated-config"}
         response = await client_mocked.put(
@@ -253,9 +243,7 @@ class TestUpdatePipeline:
         )
         assert response.status_code == 404
 
-    async def test_update_pipeline_invalid_config(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_update_pipeline_invalid_config(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Update with malicious config is rejected."""
         response = await client_mocked.put(
             f"/api/pipelines/{pipeline_mocked['id']}",
@@ -267,19 +255,13 @@ class TestUpdatePipeline:
 class TestDeletePipeline:
     """Tests for DELETE /api/pipelines/{id}."""
 
-    async def test_delete_pipeline_success(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_delete_pipeline_success(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Delete existing pipeline."""
-        response = await client_mocked.delete(
-            f"/api/pipelines/{pipeline_mocked['id']}"
-        )
+        response = await client_mocked.delete(f"/api/pipelines/{pipeline_mocked['id']}")
         assert response.status_code == 204
 
         # Verify it's gone
-        get_response = await client_mocked.get(
-            f"/api/pipelines/{pipeline_mocked['id']}"
-        )
+        get_response = await client_mocked.get(f"/api/pipelines/{pipeline_mocked['id']}")
         assert get_response.status_code == 404
 
     async def test_delete_pipeline_not_found(self, client_mocked: AsyncClient):
@@ -292,30 +274,22 @@ class TestDeletePipeline:
 class TestDuplicatePipeline:
     """Tests for POST /api/pipelines/{id}/duplicate."""
 
-    async def test_duplicate_pipeline_success(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_duplicate_pipeline_success(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Duplicate existing pipeline."""
-        response = await client_mocked.post(
-            f"/api/pipelines/{pipeline_mocked['id']}/duplicate"
-        )
+        response = await client_mocked.post(f"/api/pipelines/{pipeline_mocked['id']}/duplicate")
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == f"{pipeline_mocked['name']} (copy)"
         assert data["config"] == pipeline_mocked["config"]
         assert data["enabled"] is False  # Duplicates start disabled
 
-    async def test_duplicate_pipeline_unique_name(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_duplicate_pipeline_unique_name(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Duplicate generates unique names."""
         # First duplicate
         await client_mocked.post(f"/api/pipelines/{pipeline_mocked['id']}/duplicate")
 
         # Second duplicate should have different name
-        response = await client_mocked.post(
-            f"/api/pipelines/{pipeline_mocked['id']}/duplicate"
-        )
+        response = await client_mocked.post(f"/api/pipelines/{pipeline_mocked['id']}/duplicate")
         assert response.status_code == 201
         data = response.json()
         assert "(copy 2)" in data["name"]
@@ -330,9 +304,7 @@ class TestDuplicatePipeline:
 class TestTriggerPipelineRun:
     """Tests for POST /api/pipelines/{id}/run."""
 
-    async def test_trigger_run_success(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_trigger_run_success(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Trigger a pipeline run."""
         response = await client_mocked.post(
             f"/api/pipelines/{pipeline_mocked['id']}/run",
@@ -357,9 +329,7 @@ class TestTriggerPipelineRun:
 class TestPipelineRuns:
     """Tests for pipeline run endpoints."""
 
-    async def test_list_pipeline_runs(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_list_pipeline_runs(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """List runs for a pipeline."""
         # Create a run
         await client_mocked.post(
@@ -367,16 +337,12 @@ class TestPipelineRuns:
             json={"triggered_by": "manual"},
         )
 
-        response = await client_mocked.get(
-            f"/api/pipelines/{pipeline_mocked['id']}/runs"
-        )
+        response = await client_mocked.get(f"/api/pipelines/{pipeline_mocked['id']}/runs")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
 
-    async def test_get_run_status(
-        self, client_mocked: AsyncClient, pipeline_mocked: dict
-    ):
+    async def test_get_run_status(self, client_mocked: AsyncClient, pipeline_mocked: dict):
         """Get status of a specific run."""
         run_response = await client_mocked.post(
             f"/api/pipelines/{pipeline_mocked['id']}/run",

@@ -71,9 +71,7 @@ async def get_saved_source(connector_id: uuid.UUID) -> SavedConnector:
 
 
 @router.put("/sources/{connector_id}", response_model=SavedConnectorResponse)
-async def update_saved_source(
-    connector_id: uuid.UUID, data: SavedConnectorUpdate
-) -> SavedConnector:
+async def update_saved_source(connector_id: uuid.UUID, data: SavedConnectorUpdate) -> SavedConnector:
     """Update a saved source configuration."""
     async with get_session() as session:
         connector = await session.get(SavedConnector, connector_id)
@@ -134,9 +132,7 @@ async def create_saved_destination(data: SavedConnectorCreate) -> SavedConnector
 
 
 @router.get("/destinations", response_model=list[SavedConnectorResponse])
-async def list_saved_destinations(
-    limit: int = 100, offset: int = 0
-) -> list[SavedConnector]:
+async def list_saved_destinations(limit: int = 100, offset: int = 0) -> list[SavedConnector]:
     """List all saved destination configurations."""
     async with get_session() as session:
         query = (
@@ -161,9 +157,7 @@ async def get_saved_destination(connector_id: uuid.UUID) -> SavedConnector:
 
 
 @router.put("/destinations/{connector_id}", response_model=SavedConnectorResponse)
-async def update_saved_destination(
-    connector_id: uuid.UUID, data: SavedConnectorUpdate
-) -> SavedConnector:
+async def update_saved_destination(connector_id: uuid.UUID, data: SavedConnectorUpdate) -> SavedConnector:
     """Update a saved destination configuration."""
     async with get_session() as session:
         connector = await session.get(SavedConnector, connector_id)

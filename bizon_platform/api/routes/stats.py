@@ -35,9 +35,7 @@ async def get_stats() -> StatsResponse:
         successful_runs = success_result.scalar() or 0
 
         # Failed runs
-        failed_result = await session.execute(
-            select(func.count(PipelineRun.id)).where(PipelineRun.status == "failed")
-        )
+        failed_result = await session.execute(select(func.count(PipelineRun.id)).where(PipelineRun.status == "failed"))
         failed_runs = failed_result.scalar() or 0
 
         # Pending runs

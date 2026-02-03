@@ -232,10 +232,7 @@ async def get_config_schema(name: str) -> ConfigSchemaResponse:
                         field_info = {**field_info, **option}
                         break
 
-            field_type = _json_type_to_simple(
-                field_info.get("type"),
-                field_info.get("format")
-            )
+            field_type = _json_type_to_simple(field_info.get("type"), field_info.get("format"))
 
             fields.append(
                 ConfigFieldSchema(
@@ -303,9 +300,7 @@ async def test_connection(name: str, request: TestConnectionRequest) -> TestConn
     """Test connection for a custom source stream."""
     try:
         result = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                None, _test_connection_sync, name, request.stream, request.config
-            ),
+            asyncio.get_event_loop().run_in_executor(None, _test_connection_sync, name, request.stream, request.config),
             timeout=CHECK_TIMEOUT_SECONDS,
         )
         return result

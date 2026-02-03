@@ -61,9 +61,7 @@ def append_logs_sync(pipeline_id: UUID | str, run_id: UUID | str, content: str) 
     return f"logs/{pipeline_id}/{run_id}.log"
 
 
-async def read_logs(
-    pipeline_id: UUID | str, run_id: UUID | str, offset: int = 0
-) -> tuple[str, int]:
+async def read_logs(pipeline_id: UUID | str, run_id: UUID | str, offset: int = 0) -> tuple[str, int]:
     """Read logs from a file starting at an offset (async for API).
 
     Args:

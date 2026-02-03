@@ -106,12 +106,7 @@ async def list_pipelines(
         tags: Comma-separated list of tags to filter by (pipelines must have ALL specified tags)
     """
     async with get_session() as session:
-        query = (
-            select(Pipeline)
-            .limit(limit)
-            .offset(offset)
-            .order_by(Pipeline.created_at.desc())
-        )
+        query = select(Pipeline).limit(limit).offset(offset).order_by(Pipeline.created_at.desc())
         if enabled is not None:
             query = query.where(Pipeline.enabled == enabled)
         if tags:
@@ -190,9 +185,7 @@ async def duplicate_pipeline(pipeline_id: uuid.UUID) -> Pipeline:
         new_name = f"{base_name} (copy)"
 
         while True:
-            existing = await session.execute(
-                select(Pipeline).where(Pipeline.name == new_name)
-            )
+            existing = await session.execute(select(Pipeline).where(Pipeline.name == new_name))
             if not existing.scalar_one_or_none():
                 break
             copy_num += 1
@@ -315,9 +308,7 @@ async def sync_other_streams(pipeline_id: uuid.UUID) -> list[Pipeline]:
             new_name = f"{base_name}-{stream}"
             suffix = 2
             while True:
-                existing = await session.execute(
-                    select(Pipeline).where(Pipeline.name == new_name)
-                )
+                existing = await session.execute(select(Pipeline).where(Pipeline.name == new_name))
                 if not existing.scalar_one_or_none():
                     break
                 new_name = f"{base_name}-{stream}-{suffix}"

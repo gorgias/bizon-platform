@@ -75,9 +75,7 @@ class TestValidateBizonConfig:
         for module in blocked_imports:
             config = {
                 **VALID_DUMMY_CONFIG,
-                "transforms": [
-                    {"label": "evil", "python": f"import {module}; return record"}
-                ],
+                "transforms": [{"label": "evil", "python": f"import {module}; return record"}],
             }
             with pytest.raises(ValueError) as exc_info:
                 validate_bizon_config(config)
@@ -90,9 +88,7 @@ class TestValidateBizonConfig:
         for builtin in blocked_builtins:
             config = {
                 **VALID_DUMMY_CONFIG,
-                "transforms": [
-                    {"label": "evil", "python": f"{builtin}('test'); return record"}
-                ],
+                "transforms": [{"label": "evil", "python": f"{builtin}('test'); return record"}],
             }
             with pytest.raises(ValueError) as exc_info:
                 validate_bizon_config(config)

@@ -41,25 +41,17 @@ class Pipeline(Base):
     __tablename__ = "pipelines"
     __table_args__ = (UniqueConstraint("name", name="uq_pipelines_name"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     config: Mapped[dict] = mapped_column(EncryptedJSON, nullable=False)
     schedule: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    tags: Mapped[Optional[list[str]]] = mapped_column(
-        ARRAY(String(50)), nullable=True, default=list
-    )
+    tags: Mapped[Optional[list[str]]] = mapped_column(ARRAY(String(50)), nullable=True, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, onupdate=datetime.utcnow, nullable=True
-    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=datetime.utcnow, nullable=True)
 
     # Relationships
-    runs: Mapped[list["PipelineRun"]] = relationship(
-        "PipelineRun", back_populates="pipeline", cascade="all, delete"
-    )
+    runs: Mapped[list["PipelineRun"]] = relationship("PipelineRun", back_populates="pipeline", cascade="all, delete")
 
 
 class PipelineRun(Base):
@@ -67,18 +59,10 @@ class PipelineRun(Base):
 
     __tablename__ = "pipeline_runs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    pipeline_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("pipelines.id"), nullable=False
-    )
-    status: Mapped[str] = mapped_column(
-        String(20), default="pending"
-    )  # pending, running, success, failed, cancelled
-    triggered_by: Mapped[Optional[str]] = mapped_column(
-        String(20), nullable=True
-    )  # manual, schedule
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("pipelines.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, running, success, failed, cancelled
+    triggered_by: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # manual, schedule
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -99,23 +83,13 @@ class SavedConnector(Base):
     """
 
     __tablename__ = "saved_connectors"
-    __table_args__ = (
-        UniqueConstraint("name", "type", name="uq_saved_connectors_name_type"),
-    )
+    __table_args__ = (UniqueConstraint("name", "type", name="uq_saved_connectors_name_type"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    type: Mapped[str] = mapped_column(
-        String(20), nullable=False
-    )  # "source" or "destination"
-    connector_name: Mapped[str] = mapped_column(
-        String(100), nullable=False
-    )  # e.g., "hubspot", "bigquery"
+    type: Mapped[str] = mapped_column(String(20), nullable=False)  # "source" or "destination"
+    connector_name: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g., "hubspot", "bigquery"
     config: Mapped[dict] = mapped_column(EncryptedJSON, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, onupdate=datetime.utcnow, nullable=True
-    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=datetime.utcnow, nullable=True)

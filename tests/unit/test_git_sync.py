@@ -215,7 +215,7 @@ class TestSyncFromGit:
             # Mock git commands
             mock_run_git.return_value = MagicMock(stdout="abc12345\n")
 
-            result = sync_from_git()
+            sync_from_git()
 
             # Verify git commands were called
             assert mock_run_git.call_count >= 1
@@ -366,7 +366,7 @@ class TestGitSyncIntegration:
                     else MagicMock()
                 )
 
-                result = sync_from_git()
+                sync_from_git()
 
                 # Verify subprocess was called for git operations
                 assert mock_subprocess_run.call_count > 0

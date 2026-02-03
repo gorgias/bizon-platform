@@ -159,9 +159,7 @@ async def seed_database(reset: bool = False) -> None:
         # Check for existing demo pipelines
         existing_names = set()
         for pipeline_data in DEMO_PIPELINES:
-            result = await session.execute(
-                select(Pipeline).where(Pipeline.name == pipeline_data["name"])
-            )
+            result = await session.execute(select(Pipeline).where(Pipeline.name == pipeline_data["name"]))
             if result.scalar_one_or_none():
                 existing_names.add(pipeline_data["name"])
 

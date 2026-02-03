@@ -320,18 +320,23 @@ def _check_destination_sync(request: DestinationCheckRequest) -> CheckResponse:
 
         if request.destination_name == "logger":
             from bizon.connectors.destinations.logger.src.config import LoggerDestinationConfig
+
             dest_details_config = LoggerDestinationConfig(**request.config)
         elif request.destination_name == "bigquery":
             from bizon.connectors.destinations.bigquery.src.config import BigQueryConfigDetails
+
             dest_details_config = BigQueryConfigDetails(**request.config)
         elif request.destination_name == "bigquery_streaming":
             from bizon.connectors.destinations.bigquery_streaming.src.config import BigQueryStreamingConfigDetails
+
             dest_details_config = BigQueryStreamingConfigDetails(**request.config)
         elif request.destination_name == "bigquery_streaming_v2":
             from bizon.connectors.destinations.bigquery_streaming_v2.src.config import BigQueryStreamingV2ConfigDetails
+
             dest_details_config = BigQueryStreamingV2ConfigDetails(**request.config)
         elif request.destination_name == "file":
             from bizon.connectors.destinations.file.src.config import FileDestinationDetailsConfig
+
             dest_details_config = FileDestinationDetailsConfig(**request.config)
         else:
             return CheckResponse(

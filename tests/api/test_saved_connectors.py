@@ -30,9 +30,7 @@ class TestCreateSavedSource:
         assert "id" in data
         assert "created_at" in data
 
-    async def test_create_saved_source_with_description(
-        self, client_mocked: AsyncClient
-    ):
+    async def test_create_saved_source_with_description(self, client_mocked: AsyncClient):
         """Create saved source with description."""
         data = await create_saved_source(
             client_mocked,
@@ -41,9 +39,7 @@ class TestCreateSavedSource:
         )
         assert data["description"] == "Production HubSpot connection"
 
-    async def test_create_saved_source_duplicate_name(
-        self, client_mocked: AsyncClient
-    ):
+    async def test_create_saved_source_duplicate_name(self, client_mocked: AsyncClient):
         """Reject duplicate source name."""
         await create_saved_source(client_mocked, name="duplicate-name")
 
@@ -59,9 +55,7 @@ class TestCreateSavedSource:
         assert response.status_code == 409
         assert "already exists" in response.json()["detail"]
 
-    async def test_same_name_allowed_for_source_and_destination(
-        self, client_mocked: AsyncClient
-    ):
+    async def test_same_name_allowed_for_source_and_destination(self, client_mocked: AsyncClient):
         """Same name can be used for source and destination."""
         source = await create_saved_source(client_mocked, name="shared-name")
         dest = await create_saved_destination(client_mocked, name="shared-name")
@@ -88,9 +82,7 @@ class TestListSavedSources:
         assert response.status_code == 200
         assert len(response.json()) == 3
 
-    async def test_list_saved_sources_excludes_destinations(
-        self, client_mocked: AsyncClient
-    ):
+    async def test_list_saved_sources_excludes_destinations(self, client_mocked: AsyncClient):
         """List sources does not include destinations."""
         await create_saved_source(client_mocked, name="my-source")
         await create_saved_destination(client_mocked, name="my-destination")
@@ -129,9 +121,7 @@ class TestGetSavedSource:
         response = await client_mocked.get(f"/api/saved/sources/{fake_id}")
         assert response.status_code == 404
 
-    async def test_get_source_returns_404_for_destination(
-        self, client_mocked: AsyncClient
-    ):
+    async def test_get_source_returns_404_for_destination(self, client_mocked: AsyncClient):
         """Getting a destination ID via sources endpoint returns 404."""
         dest = await create_saved_destination(client_mocked, name="test-dest")
 
@@ -223,9 +213,7 @@ class TestCreateSavedDestination:
         assert data["connector_name"] == "bigquery"
         assert data["config"] == SAMPLE_DESTINATION_CONFIG
 
-    async def test_create_saved_destination_duplicate_name(
-        self, client_mocked: AsyncClient
-    ):
+    async def test_create_saved_destination_duplicate_name(self, client_mocked: AsyncClient):
         """Reject duplicate destination name."""
         await create_saved_destination(client_mocked, name="duplicate")
 
@@ -249,9 +237,7 @@ class TestListSavedDestinations:
         assert response.status_code == 200
         assert response.json() == []
 
-    async def test_list_saved_destinations_excludes_sources(
-        self, client_mocked: AsyncClient
-    ):
+    async def test_list_saved_destinations_excludes_sources(self, client_mocked: AsyncClient):
         """List destinations does not include sources."""
         await create_saved_source(client_mocked, name="my-source")
         await create_saved_destination(client_mocked, name="my-destination")

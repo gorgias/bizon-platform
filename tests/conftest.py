@@ -122,9 +122,7 @@ async def pipeline_mocked(client_mocked: AsyncClient) -> dict[str, Any]:
 
 
 @pytest_asyncio.fixture
-async def pipeline_with_run(
-    client: AsyncClient, pipeline: dict[str, Any]
-) -> tuple[dict[str, Any], dict[str, Any]]:
+async def pipeline_with_run(client: AsyncClient, pipeline: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """Create a pipeline with a pending run."""
     run_response = await client.post(
         f"/api/pipelines/{pipeline['id']}/run",

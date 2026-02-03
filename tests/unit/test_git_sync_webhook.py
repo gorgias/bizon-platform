@@ -102,6 +102,7 @@ class TestGitSyncWebhookEndpoint:
     def client(self):
         """Create test client with mocked settings."""
         from bizon_platform.api.app import app
+
         return TestClient(app)
 
     @pytest.fixture
@@ -241,7 +242,7 @@ class TestGitSyncWebhookEndpoint:
             payload = json.dumps({"ref": "refs/heads/main"}).encode()
             signature = self._compute_github_signature(payload, webhook_secret)
 
-            with patch("bizon_platform.api.routes.custom_sources._run_sync_background") as mock_sync:
+            with patch("bizon_platform.api.routes.custom_sources._run_sync_background"):
                 response = client.post(
                     "/api/custom-sources/git-sync/webhook",
                     content=payload,
@@ -266,7 +267,7 @@ class TestGitSyncWebhookEndpoint:
 
             payload = json.dumps({"ref": "refs/heads/main"}).encode()
 
-            with patch("bizon_platform.api.routes.custom_sources._run_sync_background") as mock_sync:
+            with patch("bizon_platform.api.routes.custom_sources._run_sync_background"):
                 response = client.post(
                     "/api/custom-sources/git-sync/webhook",
                     content=payload,
@@ -311,6 +312,7 @@ class TestGitSyncStatusWebhookConfigured:
     def client(self):
         """Create test client."""
         from bizon_platform.api.app import app
+
         return TestClient(app)
 
     def test_status_shows_webhook_not_configured(self, client):
