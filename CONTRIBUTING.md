@@ -10,7 +10,7 @@ Be respectful and constructive in all interactions. We welcome contributors of a
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.11+
 - Node.js 20+
 - PostgreSQL 16+
 - Docker (optional, for containerized development)
@@ -19,8 +19,8 @@ Be respectful and constructive in all interactions. We welcome contributors of a
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/bizon-data/bizon.git
-   cd bizon
+   git clone https://github.com/bizon-data/bizon-platform.git
+   cd bizon-platform
    ```
 
 2. **Install backend dependencies**
