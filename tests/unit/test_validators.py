@@ -1,6 +1,7 @@
 """Tests for security validators."""
 
 import pytest
+from fastapi import HTTPException
 
 from bizon_platform.api.routes.pipelines import validate_bizon_config
 from tests.fixtures.configs import (
@@ -27,21 +28,21 @@ class TestValidateBizonConfig:
 
     def test_malicious_import_os_rejected(self):
         """Config with import os transform should be rejected."""
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_bizon_config(MALICIOUS_TRANSFORM_IMPORT_OS)
-        assert "Security validation failed" in str(exc_info.value)
+        assert "Security validation failed" in exc_info.value.detail
 
     def test_malicious_eval_rejected(self):
         """Config with eval() in transform should be rejected."""
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_bizon_config(MALICIOUS_TRANSFORM_EVAL)
-        assert "Security validation failed" in str(exc_info.value)
+        assert "Security validation failed" in exc_info.value.detail
 
     def test_yaml_injection_rejected(self):
         """Config with YAML injection patterns should be rejected."""
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_bizon_config(YAML_INJECTION_PYTHON_OBJECT)
-        assert "Security validation failed" in str(exc_info.value)
+        assert "Security validation failed" in exc_info.value.detail
 
     def test_missing_source_rejected(self):
         """Config without source should be rejected."""
@@ -49,7 +50,7 @@ class TestValidateBizonConfig:
             "name": "test",
             "destination": {"name": "logger", "config": {}},
         }
-        with pytest.raises(ValueError):
+        with pytest.raises(HTTPException):
             validate_bizon_config(config)
 
     def test_missing_destination_rejected(self):
@@ -58,7 +59,7 @@ class TestValidateBizonConfig:
             "name": "test",
             "source": {"name": "dummy", "stream": "test"},
         }
-        with pytest.raises(ValueError):
+        with pytest.raises(HTTPException):
             validate_bizon_config(config)
 
     def test_blocked_imports_in_transforms(self):
@@ -77,9 +78,9 @@ class TestValidateBizonConfig:
                 **VALID_DUMMY_CONFIG,
                 "transforms": [{"label": "evil", "python": f"import {module}; return record"}],
             }
-            with pytest.raises(ValueError) as exc_info:
+            with pytest.raises(HTTPException) as exc_info:
                 validate_bizon_config(config)
-            assert "Security validation failed" in str(exc_info.value)
+            assert "Security validation failed" in exc_info.value.detail
 
     def test_blocked_builtins_in_transforms(self):
         """Blocked builtin functions should be rejected."""
@@ -90,6 +91,6 @@ class TestValidateBizonConfig:
                 **VALID_DUMMY_CONFIG,
                 "transforms": [{"label": "evil", "python": f"{builtin}('test'); return record"}],
             }
-            with pytest.raises(ValueError) as exc_info:
+            with pytest.raises(HTTPException) as exc_info:
                 validate_bizon_config(config)
-            assert "Security validation failed" in str(exc_info.value)
+            assert "Security validation failed" in exc_info.value.detail

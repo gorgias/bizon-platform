@@ -3,6 +3,7 @@
 No authentication required - simplified fixture setup.
 """
 
+import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -20,7 +21,12 @@ def anyio_backend():
     return "asyncio"
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
+def event_loop_policy():
+    return asyncio.DefaultEventLoopPolicy()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def setup_database():
     """Create database tables once per session."""
     from bizon_platform.db.models import Base
