@@ -1,15 +1,15 @@
-# Bizon Platform Lite - Claude Instructions
+# Bizon Platform - Claude Instructions
 
 ## Project Overview
 
-Bizon Platform Lite is a lightweight, single-tenant data pipeline orchestration platform. It runs bizon data pipelines with scheduling, worker execution, and a React UI.
+Bizon Platform is a lightweight, single-tenant data pipeline orchestration platform. It runs bizon data pipelines with scheduling, worker execution, and a React UI.
 
 ## Architecture
 
 - **Backend**: FastAPI + SQLAlchemy (async) + PostgreSQL
 - **Worker**: Subprocess-based pipeline execution with APScheduler
 - **UI**: React + Vite + TailwindCSS
-- **Package**: `bizon_platform_lite/`
+- **Package**: `bizon_platform/`
 
 ## Key Commands
 
@@ -95,11 +95,11 @@ class MySource(AbstractSource):
 
 ## File Locations
 
-- Backend code: `bizon_platform_lite/`
-- API routes: `bizon_platform_lite/api/routes/`
-- Database models: `bizon_platform_lite/db/models.py`
-- Worker: `bizon_platform_lite/worker/`
-- Scheduler: `bizon_platform_lite/scheduler/`
+- Backend code: `bizon_platform/`
+- API routes: `bizon_platform/api/routes/`
+- Database models: `bizon_platform/db/models.py`
+- Worker: `bizon_platform/worker/`
+- Scheduler: `bizon_platform/scheduler/`
 - Frontend: `ui/`
 - Custom sources: `custom_sources/`
 - Tests: `tests/`

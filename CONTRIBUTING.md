@@ -56,10 +56,10 @@ Be respectful and constructive in all interactions. We welcome contributors of a
 7. **Start the services**
    ```bash
    # Terminal 1: API server
-   uv run python -m bizon_platform_lite
+   uv run python -m bizon_platform
 
    # Terminal 2: Worker
-   uv run python -m bizon_platform_lite.worker
+   uv run python -m bizon_platform.worker
 
    # Terminal 3: UI
    cd ui && npm run dev
@@ -85,9 +85,9 @@ We use automated tools to maintain consistent code style.
 
 Run manually:
 ```bash
-uv run ruff check bizon_platform_lite tests --fix
-uv run ruff format bizon_platform_lite tests
-uv run mypy bizon_platform_lite
+uv run ruff check bizon_platform tests --fix
+uv run ruff format bizon_platform tests
+uv run mypy bizon_platform
 ```
 
 ### TypeScript/React
@@ -125,7 +125,7 @@ uv run pytest -v
 uv run pytest tests/api/test_pipelines.py -v
 
 # With coverage
-uv run pytest --cov=bizon_platform_lite --cov-report=html
+uv run pytest --cov=bizon_platform --cov-report=html
 ```
 
 ### Writing Tests

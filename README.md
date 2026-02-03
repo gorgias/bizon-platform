@@ -2,14 +2,14 @@
 
 A lightweight, single-tenant platform for running data pipelines. No authentication required.
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/bizon-data/bizon-platform-lite)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/bizon-data/bizon-platform-lite)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/bizon-data/bizon-platform)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/bizon-data/bizon-platform)
 
 ## Try It Now
 
 ```bash
-git clone https://github.com/bizon-data/bizon-platform-lite
-cd bizon-platform-lite
+git clone https://github.com/bizon-data/bizon-platform
+cd bizon-platform
 make dev        # Start dev environment
 make seed       # Load sample pipelines
 ```
@@ -74,10 +74,10 @@ docker compose up -d db
 alembic upgrade head
 
 # Start the API server (includes scheduler)
-uv run python -m bizon_platform_lite
+uv run python -m bizon_platform
 
 # In a separate terminal, start the worker
-uv run python -m bizon_platform_lite.worker
+uv run python -m bizon_platform.worker
 ```
 
 **Frontend (UI):**
@@ -100,7 +100,7 @@ uv run pytest -v
 uv run pytest tests/api/test_pipelines.py -v
 
 # Run with coverage
-uv run pytest --cov=bizon_platform_lite --cov-report=html
+uv run pytest --cov=bizon_platform --cov-report=html
 ```
 
 ### Test Structure
@@ -125,7 +125,7 @@ Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `postgresql+asyncpg://bizon:bizon@localhost:5432/bizon_platform_lite` | PostgreSQL connection URL |
+| `DATABASE_URL` | `postgresql+asyncpg://bizon:bizon@localhost:5432/bizon_platform` | PostgreSQL connection URL |
 | `ENCRYPTION_KEY` | (required) | Fernet key for encrypting configs |
 | `STORAGE_LOCAL_PATH` | `/tmp/bizon-outputs` | Path for pipeline output files |
 | `CUSTOM_SOURCES_DIR` | `./custom_sources` | Directory for custom source files |
@@ -273,18 +273,18 @@ Install from GHCR using the Helm chart:
 
 ```bash
 # Install with defaults (includes bundled PostgreSQL)
-helm install bizon oci://ghcr.io/bizon-data/charts/bizon-platform-lite
+helm install bizon oci://ghcr.io/bizon-data/charts/bizon-platform
 
 # Access the UI
-kubectl port-forward svc/bizon-bizon-platform-lite-ui 3000:80
+kubectl port-forward svc/bizon-bizon-platform-ui 3000:80
 open http://localhost:3000
 ```
 
 Pre-built images are available at:
-- `ghcr.io/bizon-data/bizon-platform-lite` (API + Worker)
-- `ghcr.io/bizon-data/bizon-platform-lite-ui` (UI)
+- `ghcr.io/bizon-data/bizon-platform` (API + Worker)
+- `ghcr.io/bizon-data/bizon-platform-ui` (UI)
 
-See [helm/bizon-platform-lite/README.md](helm/bizon-platform-lite/README.md) for full configuration options and [docs/enterprise-deployment.md](docs/enterprise-deployment.md) for multi-tenant setups.
+See [helm/bizon-platform/README.md](helm/bizon-platform/README.md) for full configuration options and [docs/enterprise-deployment.md](docs/enterprise-deployment.md) for multi-tenant setups.
 
 ## Architecture
 
@@ -306,10 +306,10 @@ See [helm/bizon-platform-lite/README.md](helm/bizon-platform-lite/README.md) for
 ## Project Structure
 
 ```
-bizon-platform-lite/
+bizon-platform/
 ├── .github/workflows/       # CI/CD pipelines
 │   └── release.yml          # Build & publish to GHCR
-├── bizon_platform_lite/
+├── bizon_platform/
 │   ├── api/
 │   │   ├── app.py           # FastAPI app
 │   │   ├── schemas.py       # Pydantic models
@@ -326,7 +326,7 @@ bizon-platform-lite/
 │   ├── crypto.py            # Config encryption
 │   └── settings.py          # Configuration
 ├── helm/                    # Kubernetes deployment
-│   └── bizon-platform-lite/ # Helm chart
+│   └── bizon-platform/ # Helm chart
 ├── ui/                      # React frontend
 ├── tests/                   # Test suite
 ├── custom_sources/          # Custom Python sources
@@ -367,13 +367,13 @@ The pre-commit config uses [ruff](https://github.com/astral-sh/ruff) for linting
 
 ```bash
 # Lint and fix
-uv run ruff check bizon_platform_lite tests --fix
+uv run ruff check bizon_platform tests --fix
 
 # Format
-uv run ruff format bizon_platform_lite tests
+uv run ruff format bizon_platform tests
 
 # Type checking
-uv run mypy bizon_platform_lite
+uv run mypy bizon_platform
 ```
 
 ## License

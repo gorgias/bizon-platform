@@ -1,4 +1,4 @@
-"""Pytest fixtures for bizon_platform_lite tests.
+"""Pytest fixtures for bizon_platform tests.
 
 No authentication required - simplified fixture setup.
 """
@@ -23,8 +23,8 @@ def anyio_backend():
 @pytest_asyncio.fixture(scope="session")
 async def setup_database():
     """Create database tables once per session."""
-    from bizon_platform_lite.db.models import Base
-    from bizon_platform_lite.db.session import get_engine, reset_engine
+    from bizon_platform.db.models import Base
+    from bizon_platform.db.session import get_engine, reset_engine
 
     # Reset any previous engine
     reset_engine()
@@ -45,8 +45,8 @@ async def setup_database():
 @pytest_asyncio.fixture
 async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client for testing the FastAPI app."""
-    from bizon_platform_lite.api.app import create_app
-    from bizon_platform_lite.db.session import get_engine
+    from bizon_platform.api.app import create_app
+    from bizon_platform.db.session import get_engine
 
     app = create_app()
     async with AsyncClient(
@@ -66,8 +66,8 @@ async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def client_mocked(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client with mocked bizon-core for fast tests."""
-    from bizon_platform_lite.api.app import create_app
-    from bizon_platform_lite.db.session import get_engine
+    from bizon_platform.api.app import create_app
+    from bizon_platform.db.session import get_engine
 
     # Mock RunnerFactory to skip bizon-core validation
     mock_runner = MagicMock()

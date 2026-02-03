@@ -40,7 +40,7 @@ RUN pip install uv
 
 # Copy project files
 COPY pyproject.toml README.md ./
-COPY bizon_platform_lite ./bizon_platform_lite
+COPY bizon_platform ./bizon_platform
 COPY alembic.ini ./
 
 # Install dependencies
@@ -54,4 +54,4 @@ RUN useradd -m -u 1000 bizon && \
 USER bizon
 
 # Default command runs the API
-CMD ["python", "-m", "bizon_platform_lite"]
+CMD ["python", "-m", "bizon_platform"]

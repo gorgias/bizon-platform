@@ -22,9 +22,9 @@ jobs:
       matrix:
         include:
           - target: backend
-            image_name: bizon-platform-lite
+            image_name: bizon-platform
           - target: ui
-            image_name: bizon-platform-lite-ui
+            image_name: bizon-platform-ui
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -88,16 +88,16 @@ jobs:
 
       - name: Update appVersion in Chart.yaml
         run: |
-          cd helm/bizon-platform-lite
+          cd helm/bizon-platform
           sed -i "s/^appVersion:.*/appVersion: \"sha-${{ steps.sha.outputs.short_sha }}\"/" Chart.yaml
           echo "Updated Chart.yaml:"
           cat Chart.yaml
 
       - name: Package Helm chart
         run: |
-          helm package helm/bizon-platform-lite --destination .
+          helm package helm/bizon-platform --destination .
 
       - name: Push Helm chart to GHCR
         run: |
-          CHART_VERSION=$(grep '^version:' helm/bizon-platform-lite/Chart.yaml | awk '{print $2}')
-          helm push bizon-platform-lite-${CHART_VERSION}.tgz oci://${{ env.CHART_REPO }}
+          CHART_VERSION=$(grep '^version:' helm/bizon-platform/Chart.yaml | awk '{print $2}')
+          helm push bizon-platform-${CHART_VERSION}.tgz oci://${{ env.CHART_REPO }}

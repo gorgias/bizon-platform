@@ -1,0 +1,18 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bizon-platform.fullname" . }}-postgresql
+  labels:
+    {{- include "bizon-platform.postgresql.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+      protocol: TCP
+  selector:
+    {{- include "bizon-platform.postgresql.selectorLabels" . | nindent 4 }}
+{{- end }}

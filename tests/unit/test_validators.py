@@ -2,8 +2,7 @@
 
 import pytest
 
-from bizon_platform_lite.api.validators import validate_bizon_config
-
+from bizon_platform.api.routes.pipelines import validate_bizon_config
 from tests.fixtures.configs import (
     MALICIOUS_TRANSFORM_EVAL,
     MALICIOUS_TRANSFORM_IMPORT_OS,

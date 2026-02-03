@@ -3,12 +3,12 @@
 import hashlib
 import hmac
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from bizon_platform_lite.api.routes.custom_sources import (
+from bizon_platform.api.routes.custom_sources import (
     _verify_github_signature,
     _verify_gitlab_signature,
 )
@@ -101,7 +101,7 @@ class TestGitSyncWebhookEndpoint:
     @pytest.fixture
     def client(self):
         """Create test client with mocked settings."""
-        from bizon_platform_lite.api.app import app
+        from bizon_platform.api.app import app
         return TestClient(app)
 
     @pytest.fixture
@@ -120,7 +120,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_not_configured(self, client):
         """Test webhook returns error when secret not configured."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = None
             mock_settings.git_sync_enabled = True
 
@@ -135,7 +135,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_git_sync_disabled(self, client, webhook_secret):
         """Test webhook returns error when git sync is disabled."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = False
 
@@ -157,7 +157,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_invalid_github_signature(self, client, webhook_secret):
         """Test webhook rejects invalid GitHub signature."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = True
 
@@ -175,7 +175,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_invalid_gitlab_token(self, client, webhook_secret):
         """Test webhook rejects invalid GitLab token."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = True
 
@@ -193,7 +193,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_unknown_source(self, client, webhook_secret):
         """Test webhook rejects requests without GitHub/GitLab headers."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = True
 
@@ -207,7 +207,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_skips_wrong_branch(self, client, webhook_secret):
         """Test webhook skips pushes to non-configured branches."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_branch = "main"
@@ -233,7 +233,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_triggers_sync_github(self, client, webhook_secret):
         """Test webhook triggers sync for correct branch (GitHub)."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_branch = "main"
@@ -241,7 +241,7 @@ class TestGitSyncWebhookEndpoint:
             payload = json.dumps({"ref": "refs/heads/main"}).encode()
             signature = self._compute_github_signature(payload, webhook_secret)
 
-            with patch("bizon_platform_lite.api.routes.custom_sources._run_sync_background") as mock_sync:
+            with patch("bizon_platform.api.routes.custom_sources._run_sync_background") as mock_sync:
                 response = client.post(
                     "/api/custom-sources/git-sync/webhook",
                     content=payload,
@@ -259,14 +259,14 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_triggers_sync_gitlab(self, client, webhook_secret):
         """Test webhook triggers sync for correct branch (GitLab)."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_branch = "main"
 
             payload = json.dumps({"ref": "refs/heads/main"}).encode()
 
-            with patch("bizon_platform_lite.api.routes.custom_sources._run_sync_background") as mock_sync:
+            with patch("bizon_platform.api.routes.custom_sources._run_sync_background") as mock_sync:
                 response = client.post(
                     "/api/custom-sources/git-sync/webhook",
                     content=payload,
@@ -283,7 +283,7 @@ class TestGitSyncWebhookEndpoint:
 
     def test_webhook_invalid_json(self, client, webhook_secret):
         """Test webhook handles invalid JSON payload."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_webhook_secret = webhook_secret
             mock_settings.git_sync_enabled = True
 
@@ -310,12 +310,12 @@ class TestGitSyncStatusWebhookConfigured:
     @pytest.fixture
     def client(self):
         """Create test client."""
-        from bizon_platform_lite.api.app import app
+        from bizon_platform.api.app import app
         return TestClient(app)
 
     def test_status_shows_webhook_not_configured(self, client):
         """Test status shows webhook_configured=false when not set."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_repo_url = "https://github.com/org/repo.git"
             mock_settings.git_sync_branch = "main"
@@ -330,7 +330,7 @@ class TestGitSyncStatusWebhookConfigured:
 
     def test_status_shows_webhook_configured(self, client):
         """Test status shows webhook_configured=true when set."""
-        with patch("bizon_platform_lite.api.routes.custom_sources.settings") as mock_settings:
+        with patch("bizon_platform.api.routes.custom_sources.settings") as mock_settings:
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_repo_url = "https://github.com/org/repo.git"
             mock_settings.git_sync_branch = "main"

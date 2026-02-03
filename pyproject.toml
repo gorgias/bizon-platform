@@ -1,5 +1,5 @@
 [project]
-name = "bizon-platform-lite"
+name = "bizon-platform"
 version = "0.1.0"
 description = "Lightweight pipeline orchestration platform for bizon data pipelines"
 readme = "README.md"

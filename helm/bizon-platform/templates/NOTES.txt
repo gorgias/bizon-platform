@@ -1,0 +1,91 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named: {{ .Release.Name }}
+
+=============================================================================
+  ACCESSING THE APPLICATION
+=============================================================================
+
+{{- if .Values.ingress.enabled }}
+The application is available at:
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else }}
+
+1. Get the UI URL by running:
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "bizon-platform.fullname" . }}-ui 3000:{{ .Values.ui.service.port }}
+   echo "UI: http://localhost:3000"
+
+2. Get the API URL by running:
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "bizon-platform.fullname" . }}-api 8000:{{ .Values.api.service.port }}
+   echo "API: http://localhost:8000"
+
+{{- end }}
+
+=============================================================================
+  VERIFYING THE INSTALLATION
+=============================================================================
+
+1. Check pod status:
+   kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}"
+
+2. Check API health:
+   kubectl exec deploy/{{ include "bizon-platform.fullname" . }}-api -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/api/health').read().decode())"
+
+{{- if .Values.postgresql.enabled }}
+
+3. Connect to PostgreSQL:
+   kubectl exec -it sts/{{ include "bizon-platform.fullname" . }}-postgresql -- psql -U {{ .Values.postgresql.auth.username }} -d {{ .Values.postgresql.auth.database }}
+{{- end }}
+
+=============================================================================
+  CONFIGURATION
+=============================================================================
+
+{{- if not .Values.security.encryptionKey }}
+{{- if not .Values.security.existingEncryptionKeySecret }}
+
+WARNING: No encryption key was provided. A random key was generated.
+To preserve encrypted data across upgrades, set security.encryptionKey or
+use security.existingEncryptionKeySecret with a persistent secret.
+
+Generate a key: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+{{- end }}
+{{- end }}
+
+{{- if .Values.security.adminPassword }}
+
+Basic authentication is ENABLED.
+Username: admin
+Password: (from secret {{ include "bizon-platform.adminPasswordSecretName" . }})
+{{- else }}
+
+Basic authentication is DISABLED.
+To enable, set security.adminPassword.
+{{- end }}
+
+{{- if .Values.gitSync.enabled }}
+
+Git Sync is ENABLED.
+Repository: {{ .Values.gitSync.repoUrl }}
+Branch: {{ .Values.gitSync.branch }}
+Path: {{ .Values.gitSync.path }}
+{{- end }}
+
+=============================================================================
+  USEFUL COMMANDS
+=============================================================================
+
+View API logs:
+  kubectl logs -f deploy/{{ include "bizon-platform.fullname" . }}-api --namespace {{ .Release.Namespace }}
+
+View Worker logs:
+  kubectl logs -f deploy/{{ include "bizon-platform.fullname" . }}-worker --namespace {{ .Release.Namespace }}
+
+Scale workers:
+  kubectl scale deploy/{{ include "bizon-platform.fullname" . }}-worker --replicas=3 --namespace {{ .Release.Namespace }}
+
+For more information, visit: {{ .Chart.Home }}

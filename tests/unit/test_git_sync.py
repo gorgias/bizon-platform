@@ -3,11 +3,11 @@
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bizon_platform_lite.git_sync import (
+from bizon_platform.git_sync import (
     GitSyncError,
     GitSyncResult,
     _get_repo_url_with_auth,
@@ -53,14 +53,14 @@ class TestGetRepoUrlWithAuth:
 
     def test_no_repo_url_raises_error(self):
         """Test that missing repo URL raises GitSyncError."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_repo_url = None
             with pytest.raises(GitSyncError, match="Git sync repo URL not configured"):
                 _get_repo_url_with_auth()
 
     def test_https_url_without_token(self):
         """Test HTTPS URL without token is returned as-is."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_repo_url = "https://github.com/org/repo.git"
             mock_settings.git_sync_token = None
             url = _get_repo_url_with_auth()
@@ -68,7 +68,7 @@ class TestGetRepoUrlWithAuth:
 
     def test_https_url_with_token(self):
         """Test HTTPS URL with token has token injected."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_repo_url = "https://github.com/org/repo.git"
             mock_settings.git_sync_token = "ghp_secret123"
             url = _get_repo_url_with_auth()
@@ -76,7 +76,7 @@ class TestGetRepoUrlWithAuth:
 
     def test_ssh_url_ignores_token(self):
         """Test SSH URL is returned as-is even with token."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_repo_url = "git@github.com:org/repo.git"
             mock_settings.git_sync_token = "ghp_secret123"
             url = _get_repo_url_with_auth()
@@ -142,7 +142,7 @@ class TestSyncFromGit:
 
     def test_sync_disabled_returns_failure(self):
         """Test that sync returns failure when disabled."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_enabled = False
             result = sync_from_git()
             assert result.success is False
@@ -150,20 +150,20 @@ class TestSyncFromGit:
 
     def test_sync_no_repo_url_returns_failure(self):
         """Test that sync returns failure when repo URL not configured."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_repo_url = None
             result = sync_from_git()
             assert result.success is False
             assert "not configured" in result.message
 
-    @patch("bizon_platform_lite.git_sync.shutil.rmtree")
-    @patch("bizon_platform_lite.git_sync.shutil.copytree")
-    @patch("bizon_platform_lite.git_sync._run_git_command")
-    @patch("bizon_platform_lite.git_sync.Path")
+    @patch("bizon_platform.git_sync.shutil.rmtree")
+    @patch("bizon_platform.git_sync.shutil.copytree")
+    @patch("bizon_platform.git_sync._run_git_command")
+    @patch("bizon_platform.git_sync.Path")
     def test_successful_sync(self, mock_path_class, mock_run_git, mock_copytree, mock_rmtree):
         """Test a successful git sync operation."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             # Configure settings
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_repo_url = "https://github.com/org/repo.git"
@@ -222,7 +222,7 @@ class TestSyncFromGit:
 
     def test_sync_git_error_returns_failure(self):
         """Test that git errors are handled gracefully."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_repo_url = "https://github.com/org/repo.git"
             mock_settings.git_sync_branch = "main"
@@ -230,11 +230,11 @@ class TestSyncFromGit:
             mock_settings.git_sync_token = None
             mock_settings.custom_sources_dir = "./custom_sources"
 
-            with patch("bizon_platform_lite.git_sync.shutil.rmtree"):
-                with patch("bizon_platform_lite.git_sync._run_git_command") as mock_run_git:
+            with patch("bizon_platform.git_sync.shutil.rmtree"):
+                with patch("bizon_platform.git_sync._run_git_command") as mock_run_git:
                     mock_run_git.side_effect = GitSyncError("Authentication failed")
 
-                    with patch("bizon_platform_lite.git_sync._get_temp_clone_dir") as mock_temp:
+                    with patch("bizon_platform.git_sync._get_temp_clone_dir") as mock_temp:
                         mock_temp_dir = MagicMock()
                         mock_temp_dir.exists.return_value = False
                         mock_temp_dir.mkdir = MagicMock()
@@ -250,31 +250,31 @@ class TestSyncOnStartup:
 
     def test_startup_sync_disabled(self):
         """Test that startup sync does nothing when disabled."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_enabled = False
 
-            with patch("bizon_platform_lite.git_sync.sync_from_git") as mock_sync:
+            with patch("bizon_platform.git_sync.sync_from_git") as mock_sync:
                 sync_on_startup()
                 mock_sync.assert_not_called()
 
     def test_startup_sync_enabled_calls_sync(self):
         """Test that startup sync calls sync_from_git when enabled."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_enabled = True
 
             mock_result = GitSyncResult(success=True, message="Synced")
-            with patch("bizon_platform_lite.git_sync.sync_from_git", return_value=mock_result) as mock_sync:
+            with patch("bizon_platform.git_sync.sync_from_git", return_value=mock_result) as mock_sync:
                 sync_on_startup()
                 mock_sync.assert_called_once()
 
     def test_startup_sync_logs_failure(self):
         """Test that startup sync logs failures appropriately."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             mock_settings.git_sync_enabled = True
 
             mock_result = GitSyncResult(success=False, message="Failed to connect")
-            with patch("bizon_platform_lite.git_sync.sync_from_git", return_value=mock_result):
-                with patch("bizon_platform_lite.git_sync.logger") as mock_logger:
+            with patch("bizon_platform.git_sync.sync_from_git", return_value=mock_result):
+                with patch("bizon_platform.git_sync.logger") as mock_logger:
                     sync_on_startup()
                     # Should log a warning for failed sync
                     mock_logger.warning.assert_called()
@@ -283,11 +283,11 @@ class TestSyncOnStartup:
 class TestGitSyncIntegration:
     """Integration-style tests for git sync with mocked filesystem."""
 
-    @patch("bizon_platform_lite.git_sync.shutil")
+    @patch("bizon_platform.git_sync.shutil")
     @patch("subprocess.run")
     def test_full_sync_workflow(self, mock_subprocess_run, mock_shutil):
         """Test the full sync workflow with all components mocked."""
-        with patch("bizon_platform_lite.git_sync.settings") as mock_settings:
+        with patch("bizon_platform.git_sync.settings") as mock_settings:
             # Configure settings
             mock_settings.git_sync_enabled = True
             mock_settings.git_sync_repo_url = "https://github.com/test/sources.git"
@@ -308,7 +308,7 @@ class TestGitSyncIntegration:
             mock_shutil.copytree = MagicMock()
 
             # Mock Path operations
-            with patch("bizon_platform_lite.git_sync.Path") as mock_path_class:
+            with patch("bizon_platform.git_sync.Path") as mock_path_class:
                 # Create mock temp directory
                 mock_temp = MagicMock()
                 mock_temp.exists.return_value = True

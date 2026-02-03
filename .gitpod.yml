@@ -1,5 +1,5 @@
 # Gitpod configuration for one-click cloud development
-# Open this project in Gitpod: https://gitpod.io/#https://github.com/your-org/bizon-platform-lite
+# Open this project in Gitpod: https://gitpod.io/#https://github.com/your-org/bizon-platform
 
 image: gitpod/workspace-python-3.12
 
@@ -13,7 +13,7 @@ tasks:
       docker run --name bizon-db -d \
         -e POSTGRES_USER=bizon \
         -e POSTGRES_PASSWORD=bizon \
-        -e POSTGRES_DB=bizon_platform_lite \
+        -e POSTGRES_DB=bizon_platform \
         -p 5432:5432 \
         postgres:16-alpine
       gp sync-done db-started
@@ -32,15 +32,15 @@ tasks:
       gp sync-await db-started
       sleep 3
       uv run alembic upgrade head
-      uv run python -m bizon_platform_lite.seed
-      uv run python -m bizon_platform_lite
+      uv run python -m bizon_platform.seed
+      uv run python -m bizon_platform
 
   - name: Worker
     command: |
       source $HOME/.local/bin/env
       gp sync-await db-started
       sleep 5
-      uv run python -m bizon_platform_lite.worker
+      uv run python -m bizon_platform.worker
 
   - name: Frontend
     init: cd ui && npm install

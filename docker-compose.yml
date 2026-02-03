@@ -4,13 +4,13 @@ services:
     environment:
       POSTGRES_USER: bizon
       POSTGRES_PASSWORD: bizon
-      POSTGRES_DB: bizon_platform_lite
+      POSTGRES_DB: bizon_platform
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bizon -d bizon_platform_lite"]
+      test: ["CMD-SHELL", "pg_isready -U bizon -d bizon_platform"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,7 +26,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
       CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
@@ -37,7 +37,7 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "uv run alembic upgrade head && uv run python -m bizon_platform_lite"
+      sh -c "uv run alembic upgrade head && uv run python -m bizon_platform"
 
   worker:
     profiles: [prod]
@@ -45,7 +45,7 @@ services:
       context: .
       target: backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
       CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
@@ -57,7 +57,7 @@ services:
         condition: service_healthy
       api:
         condition: service_started
-    command: ["python", "-m", "bizon_platform_lite.worker"]
+    command: ["python", "-m", "bizon_platform.worker"]
 
   ui:
     profiles: [prod]
@@ -80,11 +80,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./bizon_platform_lite:/app/bizon_platform_lite
+      - ./bizon_platform:/app/bizon_platform
       - ./custom_sources:/custom_sources
       - bizon_outputs:/tmp/bizon-outputs
     environment:
-      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
       CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
@@ -93,7 +93,7 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "uv run alembic upgrade head && uv run uvicorn bizon_platform_lite.api.app:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "uv run alembic upgrade head && uv run uvicorn bizon_platform.api.app:app --host 0.0.0.0 --port 8000 --reload"
 
   worker-dev:
     profiles: [dev]
@@ -101,11 +101,11 @@ services:
       context: .
       target: backend
     volumes:
-      - ./bizon_platform_lite:/app/bizon_platform_lite
+      - ./bizon_platform:/app/bizon_platform
       - ./custom_sources:/custom_sources
       - bizon_outputs:/tmp/bizon-outputs
     environment:
-      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform_lite
+      DATABASE_URL: postgresql+asyncpg://bizon:bizon@db:5432/bizon_platform
       STORAGE_LOCAL_PATH: /tmp/bizon-outputs
       CUSTOM_SOURCES_DIR: /custom_sources
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
@@ -116,7 +116,7 @@ services:
       api-dev:
         condition: service_started
     command: >
-      sh -c "pip install watchfiles && watchfiles 'python -m bizon_platform_lite.worker' /app/bizon_platform_lite"
+      sh -c "pip install watchfiles && watchfiles 'python -m bizon_platform.worker' /app/bizon_platform"
 
   ui-dev:
     profiles: [dev]

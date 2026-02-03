@@ -162,7 +162,7 @@ Creates multiple pipelines (one per stream) with the provided configuration.
 Store templates as YAML files in the repository:
 
 ```
-bizon-platform-lite/
+bizon-platform/
 └── templates/
     ├── index.yaml           # Template index/metadata
     ├── stripe-to-bigquery.yaml

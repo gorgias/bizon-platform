@@ -40,8 +40,8 @@ test:
 
 # Lint and format
 lint:
-	uv run ruff check bizon_platform_lite tests --fix
-	uv run black bizon_platform_lite tests
+	uv run ruff check bizon_platform tests --fix
+	uv run black bizon_platform tests
 
 # Generate encryption key
 key:
@@ -49,27 +49,27 @@ key:
 
 # Seed database with demo data
 seed:
-	uv run python -m bizon_platform_lite.seed
+	uv run python -m bizon_platform.seed
 
 # Seed database (reset first)
 seed-reset:
-	uv run python -m bizon_platform_lite.seed --reset
+	uv run python -m bizon_platform.seed --reset
 
 # Custom source testing
 # Usage: make test-source SOURCE=pokeapi STREAM=pokemon
 test-source:
-	uv run python -m bizon_platform_lite.cli.test_source check $(SOURCE) $(STREAM)
+	uv run python -m bizon_platform.cli.test_source check $(SOURCE) $(STREAM)
 
 # Fetch sample records from a custom source
 # Usage: make fetch-source SOURCE=pokeapi STREAM=pokemon
 fetch-source:
-	uv run python -m bizon_platform_lite.cli.test_source fetch $(SOURCE) $(STREAM) --limit 5
+	uv run python -m bizon_platform.cli.test_source fetch $(SOURCE) $(STREAM) --limit 5
 
 # Run a logger pipeline for a custom source
 # Usage: make run-source SOURCE=pokeapi STREAM=pokemon
 run-source:
-	uv run python -m bizon_platform_lite.cli.test_source run $(SOURCE) $(STREAM)
+	uv run python -m bizon_platform.cli.test_source run $(SOURCE) $(STREAM)
 
 # List available custom sources
 list-sources:
-	uv run python -m bizon_platform_lite.cli.test_source list
+	uv run python -m bizon_platform.cli.test_source list
