@@ -9,6 +9,7 @@ from croniter import croniter
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from bizon_platform.api.schemas import (
     PipelineCreate,
@@ -88,7 +89,13 @@ async def create_pipeline(data: PipelineCreate) -> Pipeline:
             tags=data.tags or [],
         )
         session.add(pipeline)
-        await session.flush()
+        try:
+            await session.flush()
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Pipeline with name '{data.name}' already exists",
+            )
         await session.refresh(pipeline)
         return pipeline
 
