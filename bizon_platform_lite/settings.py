@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     git_sync_branch: str = "main"
     git_sync_path: str = "custom_sources"  # subdirectory in repo to sync
     git_sync_token: Optional[str] = None  # PAT for private repos
+    git_sync_webhook_secret: Optional[str] = None  # Secret for GitHub/GitLab webhooks
 
     # Encryption (for config secrets)
     # Generate a key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

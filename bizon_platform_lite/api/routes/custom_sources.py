@@ -1,19 +1,23 @@
 """Custom sources management endpoints."""
 
 import asyncio
+import hashlib
+import hmac
 import importlib.util
+import logging
 import os
 import shutil
 import zipfile
 from io import BytesIO
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Header, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
 from bizon_platform_lite.settings import settings
 
 router = APIRouter(prefix="/custom-sources", tags=["custom-sources"])
+logger = logging.getLogger(__name__)
 
 # Timeout for connection checks (in seconds)
 CHECK_TIMEOUT_SECONDS = 30
@@ -91,6 +95,14 @@ class GitSyncStatusResponse(BaseModel):
     repo_url: str | None = None
     branch: str = "main"
     path: str = "custom_sources"
+    webhook_configured: bool = False
+
+
+class GitSyncWebhookResponse(BaseModel):
+    """Response from git sync webhook."""
+
+    status: str  # "sync_triggered", "skipped", "error"
+    message: str
 
 
 def _get_source_class(source_name: str):
@@ -447,6 +459,7 @@ async def get_git_sync_status() -> GitSyncStatusResponse:
         repo_url=settings.git_sync_repo_url if settings.git_sync_enabled else None,
         branch=settings.git_sync_branch,
         path=settings.git_sync_path,
+        webhook_configured=bool(settings.git_sync_webhook_secret),
     )
 
 
@@ -470,4 +483,120 @@ async def sync_from_git() -> GitSyncResponse:
         commit_hash=result.commit_hash,
         files_updated=result.files_updated,
         synced_at=result.synced_at.isoformat() if result.synced_at else None,
+    )
+
+
+def _verify_github_signature(payload: bytes, signature: str | None, secret: str) -> bool:
+    """Verify GitHub webhook signature (HMAC-SHA256).
+
+    GitHub sends the signature in the format: sha256=<hex-digest>
+    """
+    if not signature:
+        return False
+
+    if not signature.startswith("sha256="):
+        return False
+
+    expected_signature = signature[7:]  # Remove "sha256=" prefix
+    computed_signature = hmac.new(
+        secret.encode("utf-8"),
+        payload,
+        hashlib.sha256,
+    ).hexdigest()
+
+    return hmac.compare_digest(expected_signature, computed_signature)
+
+
+def _verify_gitlab_signature(payload: bytes, token: str | None, secret: str) -> bool:
+    """Verify GitLab webhook token.
+
+    GitLab sends the secret token in the X-Gitlab-Token header.
+    """
+    if not token:
+        return False
+    return hmac.compare_digest(token, secret)
+
+
+def _run_sync_background() -> None:
+    """Run git sync in background (for use with BackgroundTasks)."""
+    from bizon_platform_lite.git_sync import sync_from_git as do_sync
+
+    result = do_sync()
+    if result.success:
+        logger.info(f"Webhook-triggered sync complete: {result.message}")
+    else:
+        logger.error(f"Webhook-triggered sync failed: {result.message}")
+
+
+@router.post("/git-sync/webhook", response_model=GitSyncWebhookResponse)
+async def git_sync_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    x_hub_signature_256: str | None = Header(None),
+    x_gitlab_token: str | None = Header(None),
+    x_github_event: str | None = Header(None),
+    x_gitlab_event: str | None = Header(None),
+) -> GitSyncWebhookResponse:
+    """Webhook endpoint for GitHub/GitLab push events.
+
+    Configure this URL in your GitHub/GitLab repository webhook settings:
+    - URL: https://your-domain/api/custom-sources/git-sync/webhook
+    - Content type: application/json
+    - Secret: Set GIT_SYNC_WEBHOOK_SECRET env var to the same value
+    - Events: Push events only
+
+    Supports both GitHub and GitLab webhooks.
+    """
+    # Check if webhook is configured
+    if not settings.git_sync_webhook_secret:
+        raise HTTPException(status_code=400, detail="Webhook secret not configured")
+
+    if not settings.git_sync_enabled:
+        raise HTTPException(status_code=400, detail="Git sync is not enabled")
+
+    # Read request body
+    body = await request.body()
+
+    # Verify signature (GitHub or GitLab)
+    is_github = x_hub_signature_256 is not None or x_github_event is not None
+    is_gitlab = x_gitlab_token is not None or x_gitlab_event is not None
+
+    if is_github:
+        if not _verify_github_signature(body, x_hub_signature_256, settings.git_sync_webhook_secret):
+            logger.warning("GitHub webhook signature verification failed")
+            raise HTTPException(status_code=401, detail="Invalid signature")
+    elif is_gitlab:
+        if not _verify_gitlab_signature(body, x_gitlab_token, settings.git_sync_webhook_secret):
+            logger.warning("GitLab webhook token verification failed")
+            raise HTTPException(status_code=401, detail="Invalid token")
+    else:
+        raise HTTPException(status_code=400, detail="Unknown webhook source")
+
+    # Parse payload
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    # Extract branch reference
+    # GitHub: {"ref": "refs/heads/main", ...}
+    # GitLab: {"ref": "refs/heads/main", ...}
+    ref = payload.get("ref", "")
+    expected_ref = f"refs/heads/{settings.git_sync_branch}"
+
+    if ref != expected_ref:
+        branch_name = ref.replace("refs/heads/", "") if ref.startswith("refs/heads/") else ref
+        logger.info(f"Webhook received for branch '{branch_name}', skipping (configured: {settings.git_sync_branch})")
+        return GitSyncWebhookResponse(
+            status="skipped",
+            message=f"Push to '{branch_name}' ignored, only syncing '{settings.git_sync_branch}'",
+        )
+
+    # Trigger sync in background
+    logger.info(f"Webhook received for {settings.git_sync_branch}, triggering sync")
+    background_tasks.add_task(_run_sync_background)
+
+    return GitSyncWebhookResponse(
+        status="sync_triggered",
+        message=f"Sync triggered for branch '{settings.git_sync_branch}'",
     )
