@@ -14,7 +14,7 @@ env:
 jobs:
   lint:
     name: Lint
-    runs-on: gh-actions-1cpu2gb-runner-set
+    runs-on: gh-actions-0.5cpu1gb-runner-set
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

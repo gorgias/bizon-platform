@@ -65,7 +65,7 @@ jobs:
 
   publish-helm-chart:
     name: Publish Helm chart
-    runs-on: gh-actions-1cpu2gb-runner-set
+    runs-on: gh-actions-0.5cpu1gb-runner-set
     needs: build-images
     steps:
       - name: Checkout repository
